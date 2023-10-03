@@ -1,18 +1,24 @@
 import React, { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker } from 'antd';
-import './App.css';
+import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
+import "./App.css";
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
-function App() {  
-  const [rowData] = useState([
-    { marka: "Toyota", modelis: "A22", gads: "2009", numurzīme:'00000L', krāsa: 'balta', motors: 'benzīns', motoratilpums: '12', ātrumkārba: 'manuāls'},
-  ]);
+function App() {
+  const [formData, setFormData] = useState({});
+  const [rowData, setRowData] = useState([]);
 
-  const dateFormatList = ['DD/MM/YYYY', 'DD/MM/YY', 'DD-MM-YYYY', 'DD-MM-YY'];
+  const dateFormatList = ["DD/MM/YYYY", "DD/MM/YY", "DD-MM-YYYY", "DD-MM-YY"];
 
+  const handleFormSubmit = () => {
+    const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
+    const newData = { ...formData, gads: yearValue };
+    setRowData([...rowData, newData]);
+    setFormData({});
+    console.log(rowData);
+  };
 
   const [columnDefs] = useState([
     { field: "marka" },
@@ -22,32 +28,52 @@ function App() {
     { field: "krāsa" },
     { field: "motors" },
     { field: "motoratilpums" },
-    { field: "ātrumkārba" }
-
-    
+    { field: "ātrumkārba" },
   ]);
 
   return (
     <div>
       <Form layout="inline">
         <Form.Item>
-          <Input placeholder="Marka" />
+          <Input
+            placeholder="Marka"
+            value={formData.marka}
+            onChange={(e) =>
+              setFormData({ ...formData, marka: e.target.value })
+            }
+          />
         </Form.Item>
         <Form.Item>
-          <Input placeholder="Modelis" />
+          <Input
+            placeholder="Modelis"
+            value={formData.modelis}
+            onChange={(e) =>
+              setFormData({ ...formData, modelis: e.target.value })
+            }
+          />
         </Form.Item>
         <Form.Item>
-          <DatePicker picker="year" />
+          <DatePicker
+            picker="year"
+            value={formData.gads}
+            onChange={(date) => setFormData({ ...formData, gads: date })}
+          />
         </Form.Item>
         <Form.Item>
           <Input
             maxLength="8"
             placeholder="Numurzīme"
             onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
+            value={formData.numurzīme}
+            onChange={(e) =>
+              setFormData({ ...formData, numurzīme: e.target.value })
+            }
           />
         </Form.Item>
         <Form.Item>
           <Select
+            value={formData.krāsa}
+            onChange={(value) => setFormData({ ...formData, krāsa: value })}
             style={{ width: 120 }}
             listHeight={400}
             placeholder="Krāsa"
@@ -105,6 +131,8 @@ function App() {
         </Form.Item>
         <Form.Item style={{ width: 150 }}>
           <Select
+            value={formData.motors}
+            onChange={(value) => setFormData({ ...formData, motors: value })}
             placeholder="Dzinējs"
             options={[
               {
@@ -131,7 +159,11 @@ function App() {
           />
         </Form.Item>
         <Form.Item>
-          <InputNumber
+          <InputNumber  
+            value={formData.motoratilpums}
+            onChange={(value) =>
+              setFormData({ ...formData, motoratilpums: value })
+            }
             type="number"
             style={{ width: "150px" }}
             min={0.1}
@@ -141,6 +173,8 @@ function App() {
         </Form.Item>
         <Form.Item>
           <Select
+          value={formData.ātrumkārba}
+          onChange={(value) => setFormData({...formData, ātrumkārba: value})}
             placeholder="Ātrumkārbas tips"
             options={[
               {
@@ -155,7 +189,7 @@ function App() {
           />
         </Form.Item>
         <Form.Item>
-          <Button type="primary" htmlType="submit">
+          <Button type="primary" htmlType="submit" onClick={handleFormSubmit}>
             OK
           </Button>
         </Form.Item>
@@ -214,9 +248,7 @@ function App() {
             <Input placeholder="Pārdošanas cena (EUR)" />
           </Form.Item>
           <Form.Item>
-            <DatePicker
-              format={dateFormatList}
-            />
+            <DatePicker format={dateFormatList} />
           </Form.Item>
           <Form.Item>
             <Button type="primary">OK</Button>
