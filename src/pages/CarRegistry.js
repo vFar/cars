@@ -1,16 +1,34 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
 import "../App.css";
-
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
+import moment from "moment";
 
 import { Link } from "react-router-dom";
 
 function CarRegistry() {
-  const [formData, setFormData] = useState({});
-  const [rowData, setRowData] = useState([]);
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem("formData");
+    const parsedData = savedData ? JSON.parse(savedData) : {};
+    if (parsedData.gads) {
+      parsedData.gads = moment(parsedData.gads);
+    }
+    return parsedData;
+  });
+  const [rowData, setRowData] = useState(() => {
+    const savedRowData = localStorage.getItem("rowData");
+    return savedRowData ? JSON.parse(savedRowData) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem("formData", JSON.stringify(formData));
+  }, [formData]);
+
+  useEffect(() => {
+    localStorage.setItem("rowData", JSON.stringify(rowData));
+  }, [rowData]);
 
   const handleFormSubmit = () => {
     const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
@@ -82,9 +100,7 @@ function CarRegistry() {
               picker="year"
               placeholder={"Gads"}
               value={formData.gads}
-              onChange={(date) =>
-                setFormData({ ...formData, gads: date })
-              }
+              onChange={(date) => setFormData({ ...formData, gads: date })}
             />
           </Form.Item>
           <Form.Item>
@@ -93,9 +109,7 @@ function CarRegistry() {
               listHeight={450}
               placeholder="Krāsa"
               value={formData.krāsa}
-              onChange={(value) =>
-                setFormData({...formData, krāsa: value })
-              }
+              onChange={(value) => setFormData({ ...formData, krāsa: value })}
               options={[
                 {
                   value: "Balta",
@@ -156,9 +170,7 @@ function CarRegistry() {
             <Select
               placeholder="Dzinējs"
               value={formData.motors}
-              onChange={(value) =>
-                setFormData({...formData, motors: value })
-              }
+              onChange={(value) => setFormData({ ...formData, motors: value })}
               options={[
                 {
                   value: "Benzīns/gāze",
@@ -192,7 +204,7 @@ function CarRegistry() {
               placeholder="Motora tilpums"
               value={formData.motoratilpums}
               onChange={(value) =>
-                setFormData({...formData, motoratilpums: value })
+                setFormData({ ...formData, motoratilpums: value })
               }
             />
           </Form.Item>
@@ -201,7 +213,7 @@ function CarRegistry() {
               placeholder="Ātrumkārbas tips"
               value={formData.ātrumkārba}
               onChange={(value) =>
-                setFormData({...formData, ātrumkārba: value })
+                setFormData({ ...formData, ātrumkārba: value })
               }
               options={[
                 {
@@ -220,7 +232,7 @@ function CarRegistry() {
               placeholder="Virsbūves tips"
               value={formData.virsbūve}
               onChange={(value) =>
-                setFormData({...formData, virsbūve: value })
+                setFormData({ ...formData, virsbūve: value })
               }
               options={[
                 {
