@@ -9,20 +9,16 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { Link } from "react-router-dom";
 
 function CarRegistry() {
-  const [rowData] = useState([
-    {
-      VIN: "VF7XS9HUC9Z003648",
-      numurzīme: "00000L",
-      marka: "Toyota",
-      modelis: "A22",
-      gads: "2009",
-      krāsa: "balta",
-      motors: "benzīns",
-      motoratilpums: "12",
-      ātrumkārba: "manuāls",
-      virsbūve: "Pikaps",
-    },
-  ]);
+  const [formData, setFormData] = useState({});
+  const [rowData, setRowData] = useState([]);
+
+  const handleFormSubmit = () => {
+    const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
+    const newData = { ...formData, gads: yearValue };
+    setRowData([...rowData, newData]);
+    setFormData({});
+    console.log(rowData);
+  };
 
   const [columnDefs] = useState([
     { field: "VIN" },
@@ -46,6 +42,10 @@ function CarRegistry() {
               maxLength="17"
               placeholder="VIN"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
+              value={formData.VIN}
+              onChange={(e) =>
+                setFormData({ ...formData, VIN: e.target.value })
+              }
             />
           </Form.Item>
           <Form.Item>
@@ -53,22 +53,49 @@ function CarRegistry() {
               maxLength="8"
               placeholder="Numurzīme"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
+              value={formData.numurzīme}
+              onChange={(e) =>
+                setFormData({ ...formData, numurzīme: e.target.value })
+              }
             />
           </Form.Item>
           <Form.Item>
-            <Input placeholder="Marka" />
+            <Input
+              placeholder="Marka"
+              value={formData.marka}
+              onChange={(e) =>
+                setFormData({ ...formData, marka: e.target.value })
+              }
+            />
           </Form.Item>
           <Form.Item>
-            <Input placeholder="Modelis" />
+            <Input
+              placeholder="Modelis"
+              value={formData.modelis}
+              onChange={(e) =>
+                setFormData({ ...formData, modelis: e.target.value })
+              }
+            />
           </Form.Item>
           <Form.Item>
-            <DatePicker picker="year" placeholder={"Gads"} />
+            <DatePicker
+              picker="year"
+              placeholder={"Gads"}
+              value={formData.gads}
+              onChange={(date) =>
+                setFormData({ ...formData, gads: date })
+              }
+            />
           </Form.Item>
           <Form.Item>
             <Select
               style={{ width: 120 }}
               listHeight={450}
               placeholder="Krāsa"
+              value={formData.krāsa}
+              onChange={(value) =>
+                setFormData({...formData, krāsa: value })
+              }
               options={[
                 {
                   value: "Balta",
@@ -128,6 +155,10 @@ function CarRegistry() {
           <Form.Item style={{ width: 150 }}>
             <Select
               placeholder="Dzinējs"
+              value={formData.motors}
+              onChange={(value) =>
+                setFormData({...formData, motors: value })
+              }
               options={[
                 {
                   value: "Benzīns/gāze",
@@ -159,11 +190,19 @@ function CarRegistry() {
               min={0.1}
               max={10}
               placeholder="Motora tilpums"
+              value={formData.motoratilpums}
+              onChange={(value) =>
+                setFormData({...formData, motoratilpums: value })
+              }
             />
           </Form.Item>
           <Form.Item>
             <Select
               placeholder="Ātrumkārbas tips"
+              value={formData.ātrumkārba}
+              onChange={(value) =>
+                setFormData({...formData, ātrumkārba: value })
+              }
               options={[
                 {
                   value: "Manuāls",
@@ -179,6 +218,10 @@ function CarRegistry() {
           <Form.Item>
             <Select
               placeholder="Virsbūves tips"
+              value={formData.virsbūve}
+              onChange={(value) =>
+                setFormData({...formData, virsbūve: value })
+              }
               options={[
                 {
                   value: "Apvidus",
@@ -221,7 +264,7 @@ function CarRegistry() {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit">
+            <Button type="primary" htmlType="submit" onClick={handleFormSubmit}>
               OK
             </Button>
           </Form.Item>
