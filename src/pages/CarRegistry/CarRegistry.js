@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
+import moment from "moment";
 
 
 import { ISelectCellEditorParams } from "ag-grid-community";
@@ -13,9 +14,27 @@ import { Link } from "react-router-dom";
 import numericCellEditor from "./numericCellEditor.jsx";
 
 function CarRegistry() {
-  const [formData, setFormData] = useState({});
-  const [rowData, setRowData] = useState([]);
+  const [formData, setFormData] = useState(() => {
+    const savedData = localStorage.getItem("formData");
+    const parsedData = savedData ? JSON.parse(savedData) : {};
+    if (parsedData.gads) {
+      parsedData.gads = moment(parsedData.gads);
+    }
+    return parsedData;
+  });
+  const [rowData, setRowData] = useState(() => {
+    const savedRowData = localStorage.getItem("rowData");
+    return savedRowData ? JSON.parse(savedRowData) : [];
+  });
 
+  useEffect(() => {
+    localStorage.setItem("formData", JSON.stringify(formData));
+  }, [formData]);
+
+  useEffect(() => {
+    localStorage.setItem("rowData", JSON.stringify(rowData));
+  }, [rowData]);
+  
   const handleFormSubmit = () => {
     const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
     const newData = { ...formData, gads: yearValue };
