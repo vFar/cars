@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
-import "../App.css";
+
+
+import { ISelectCellEditorParams } from "ag-grid-community";
+import NumericCellEditor from './numericCellEditor.jsx';
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 import { Link } from "react-router-dom";
+import numericCellEditor from "./numericCellEditor.jsx";
 
 function CarRegistry() {
   const [formData, setFormData] = useState({});
@@ -22,16 +26,29 @@ function CarRegistry() {
 
   const [columnDefs] = useState([
     { field: "VIN" },
-    { field: "numurzīme" },
+    { field: "numurzīme"},
     { field: "marka" },
     { field: "modelis" },
     { field: "gads" },
-    { field: "krāsa" },
-    { field: "motors" },
-    { field: "motoratilpums" },
-    { field: "ātrumkārba" },
-    { field: "virsbūve" },
+    { field: "krāsa", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Balta', 'Melna', 'Brūna', 'Dzeltena', 'Gaiši zila', 'Zila', 'Sudraba', 'Zaļa', 'Sarkana', 'Tumši sarkana', 'Violeta', 'Pelēka', 'Oranža']}},
+    { field: "motors", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Benzīns/gāze', 'Benzīns', 'Dīzelis', 'Hibrīds', 'Elektrisks']}},
+    { field: "motoratilpums", cellEditor: numericCellEditor },
+    { field: "ātrumkārba", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Manuāls', 'Automāts']}},
+    { field: "virsbūve", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Apvidus', 'Hečbeks', 'Kabriolets', 'Kupeja', 'Universālis', 'Pikaps', 'Sedans', 'Mikroautobuss']}},
   ]);
+
+
+
+
+  const defaultColDef = useMemo(() => {
+    return {
+      flex: 1,
+      editable: true,
+      cellDataType: false,
+    };
+  }, []);
+
+  const gridRef = useRef();
 
   return (
     <>
@@ -40,12 +57,18 @@ function CarRegistry() {
           <Form.Item>
             <Input
               maxLength="17"
+              minLength="5"
               placeholder="VIN"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
               value={formData.VIN}
               onChange={(e) =>
                 setFormData({ ...formData, VIN: e.target.value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -57,6 +80,11 @@ function CarRegistry() {
               onChange={(e) =>
                 setFormData({ ...formData, numurzīme: e.target.value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -66,6 +94,11 @@ function CarRegistry() {
               onChange={(e) =>
                 setFormData({ ...formData, marka: e.target.value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -75,6 +108,11 @@ function CarRegistry() {
               onChange={(e) =>
                 setFormData({ ...formData, modelis: e.target.value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -82,9 +120,12 @@ function CarRegistry() {
               picker="year"
               placeholder={"Gads"}
               value={formData.gads}
-              onChange={(date) =>
-                setFormData({ ...formData, gads: date })
-              }
+              onChange={(date) => setFormData({ ...formData, gads: date })}
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -93,9 +134,12 @@ function CarRegistry() {
               listHeight={450}
               placeholder="Krāsa"
               value={formData.krāsa}
-              onChange={(value) =>
-                setFormData({...formData, krāsa: value })
-              }
+              onChange={(value) => setFormData({ ...formData, krāsa: value })}
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
               options={[
                 {
                   value: "Balta",
@@ -156,9 +200,12 @@ function CarRegistry() {
             <Select
               placeholder="Dzinējs"
               value={formData.motors}
-              onChange={(value) =>
-                setFormData({...formData, motors: value })
-              }
+              onChange={(value) => setFormData({ ...formData, motors: value })}
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
               options={[
                 {
                   value: "Benzīns/gāze",
@@ -192,8 +239,13 @@ function CarRegistry() {
               placeholder="Motora tilpums"
               value={formData.motoratilpums}
               onChange={(value) =>
-                setFormData({...formData, motoratilpums: value })
+                setFormData({ ...formData, motoratilpums: value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
             />
           </Form.Item>
           <Form.Item>
@@ -201,8 +253,13 @@ function CarRegistry() {
               placeholder="Ātrumkārbas tips"
               value={formData.ātrumkārba}
               onChange={(value) =>
-                setFormData({...formData, ātrumkārba: value })
+                setFormData({ ...formData, ātrumkārba: value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
               options={[
                 {
                   value: "Manuāls",
@@ -220,8 +277,13 @@ function CarRegistry() {
               placeholder="Virsbūves tips"
               value={formData.virsbūve}
               onChange={(value) =>
-                setFormData({...formData, virsbūve: value })
+                setFormData({ ...formData, virsbūve: value })
               }
+              rules={[
+                {
+                  required: true,
+                },
+              ]}
               options={[
                 {
                   value: "Apvidus",
@@ -271,7 +333,13 @@ function CarRegistry() {
         </Form>
 
         <div className="ag-theme-alpine" style={{ height: 200, width: 1650 }}>
-          <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact>
+          <AgGridReact
+            ref={gridRef}
+            rowData={rowData}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            editType={'fullRow'}
+          ></AgGridReact>
         </div>
 
         <Link

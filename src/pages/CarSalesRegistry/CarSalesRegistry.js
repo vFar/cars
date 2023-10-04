@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
-import '../App.css';
+import { Link } from 'react-router-dom';
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -39,18 +39,43 @@ function CarSalesRegistry() {
           <Form.Item>
             <Select
               placeholder="Statuss"
+              style={{width: 260}}
               options={[
                 {
-                  value: "Labs",
-                  label: "Labs",
+                  value: "Saņemts jauns pieprasījums",
+                  label: "Saņemts jauns pieprasījums",
                 },
                 {
-                  value: "Slikts",
-                  label: "Slikts",
+                  value: "Uzsākta vērtēšana",
+                  label: "Uzsākta vērtēšana",
                 },
                 {
-                  value: "Vidējs",
-                  label: "Vidējs",
+                  value: "Saņemts novērtējums",
+                  label: "Saņemts novērtējums",
+                },
+                {
+                  value: "Sākās automašīnu tirdzniecība",
+                  label: "Sākās automašīnu tirdzniecība",
+                },
+                {
+                  value: "Automašīnu tirdzniecība pabeigta",
+                  label: "Automašīnu tirdzniecība pabeigta",
+                },
+                {
+                  value: "Pārdošanas līgums nosūtīts pircējam",
+                  label: "Pārdošanas līgums nosūtīts pircējam",
+                },
+                {
+                  value: "Pārdots - līgums atpakaļ no pircēja",
+                  label: "Pārdots - līgums atpakaļ no pircēja",
+                },
+                {
+                  value: "Automašīna piegādāta pircējam",
+                  label: "Automašīna piegādāta pircējam",
+                },
+                {
+                  value: "Atcelts",
+                  label: "Atcelts",
                 },
               ]}
             />
@@ -72,6 +97,14 @@ function CarSalesRegistry() {
         {/* <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact> */}
 
         <Button type="primary">Ģenerēt PDF</Button>
+
+        <Link
+          to="/"
+          className="btn"
+          style={{ backgroundColor: "red" }}
+        >
+          <Button type="primary">Automašīnu reģistrs</Button>
+        </Link>
     </>
   );
 }
