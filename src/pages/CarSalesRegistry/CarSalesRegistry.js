@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
+import { Button, Form, Input, Select, DatePicker } from "antd";
 import { Link } from 'react-router-dom';
 
 import "ag-grid-community/styles/ag-grid.css";

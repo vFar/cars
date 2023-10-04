@@ -3,10 +3,6 @@ import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
 import moment from "moment";
 
-
-import { ISelectCellEditorParams } from "ag-grid-community";
-import NumericCellEditor from './numericCellEditor.jsx';
-
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
@@ -34,18 +30,17 @@ function CarRegistry() {
   useEffect(() => {
     localStorage.setItem("rowData", JSON.stringify(rowData));
   }, [rowData]);
-  
+
   const handleFormSubmit = () => {
     const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
     const newData = { ...formData, gads: yearValue };
     setRowData([...rowData, newData]);
     setFormData({});
-    console.log(rowData);
   };
 
   const [columnDefs] = useState([
-    { field: "VIN" },
-    { field: "numurzīme"},
+    { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5}},
+    { field: "numurzīme", cellEditorParams: { maxLength: 16, minLength: 2}},
     { field: "marka" },
     { field: "modelis" },
     { field: "gads" },
@@ -73,7 +68,11 @@ function CarRegistry() {
     <>
       <div>
         <Form layout="inline">
-          <Form.Item>
+          <Form.Item               rules={[
+                {
+                  required: true,
+                },
+              ]}>
             <Input
               maxLength="17"
               minLength="5"
@@ -83,17 +82,13 @@ function CarRegistry() {
               onChange={(e) =>
                 setFormData({ ...formData, VIN: e.target.value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
             />
           </Form.Item>
           <Form.Item>
             <Input
-              maxLength="8"
               placeholder="Numurzīme"
+              maxLength={16}
+              minLength={2}
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
               value={formData.numurzīme}
               onChange={(e) =>
@@ -358,6 +353,7 @@ function CarRegistry() {
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             editType={'fullRow'}
+            animateRows={true}
           ></AgGridReact>
         </div>
 
