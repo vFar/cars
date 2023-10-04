@@ -9,6 +9,7 @@ import numericCellEditor from "./numericCellEditor.jsx";
 import { Link } from "react-router-dom";
 
 function CarRegistry() {
+  const [formValid, setFormValid] = useState(false);
   const [formData, setFormData] = useState(() => {
     const savedData = localStorage.getItem("formData");
     const parsedData = savedData ? JSON.parse(savedData) : {};
@@ -31,16 +32,18 @@ function CarRegistry() {
   }, [rowData]);
 
   const handleFormSubmit = () => {
-    const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
-    const newData = { ...formData, gads: yearValue };
-    setRowData([...rowData, newData]);
-    setFormData({});
-    console.log(rowData);
+    if (formValid) {
+      const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
+      const newData = { ...formData, gads: yearValue };
+      setRowData([...rowData, newData]);
+      setFormData({});
+      console.log(rowData);
+    }
   };
 
   const [columnDefs] = useState([
-    { field: "VIN" },
-    { field: "numurzīme" },
+    { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5 } },
+    { field: "numurzīme", cellEditorParams: { maxLength: 16, minLength: 2 } },
     { field: "marka" },
     { field: "modelis" },
     { field: "gads" },
@@ -95,6 +98,38 @@ function CarRegistry() {
       },
     },
   ]);
+  useEffect(() => {
+    checkFormValidity();
+  });
+
+  const checkFormValidity = () => {
+    const {
+      VIN,
+      numurzīme,
+      marka,
+      modelis,
+      gads,
+      krāsa,
+      motors,
+      motoratilpums,
+      ātrumkārba,
+      virsbūve,
+    } = formData;
+
+    const isFormValid =
+      VIN &&
+      numurzīme &&
+      marka &&
+      modelis &&
+      gads &&
+      krāsa &&
+      motors &&
+      motoratilpums &&
+      ātrumkārba &&
+      virsbūve;
+
+    setFormValid(isFormValid);
+  };
 
   const defaultColDef = useMemo(() => {
     return {
@@ -105,6 +140,15 @@ function CarRegistry() {
   }, []);
 
   const gridRef = useRef();
+
+  const handleCellValueChanged = () => {
+    const updatedData = gridRef.current.api
+      .getModel()
+      .rowsToDisplay.map((rowNode) => {
+        return rowNode.data;
+      });
+    setRowData(updatedData);
+  };
 
   return (
     <>
@@ -332,7 +376,12 @@ function CarRegistry() {
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" onClick={handleFormSubmit}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              onClick={handleFormSubmit}
+              disabled={!formValid}
+            >
               OK
             </Button>
           </Form.Item>
@@ -345,6 +394,7 @@ function CarRegistry() {
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             editType={"fullRow"}
+            onCellValueChanged={handleCellValueChanged}
           ></AgGridReact>
         </div>
 
