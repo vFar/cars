@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
-import "../App.css";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import moment from "moment";
+import numericCellEditor from "./numericCellEditor.jsx";
 
 import { Link } from "react-router-dom";
 
@@ -44,12 +44,67 @@ function CarRegistry() {
     { field: "marka" },
     { field: "modelis" },
     { field: "gads" },
-    { field: "krāsa" },
-    { field: "motors" },
-    { field: "motoratilpums" },
-    { field: "ātrumkārba" },
-    { field: "virsbūve" },
+    {
+      field: "krāsa",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: [
+          "Balta",
+          "Melna",
+          "Brūna",
+          "Dzeltena",
+          "Gaiši zila",
+          "Zila",
+          "Sudraba",
+          "Zaļa",
+          "Sarkana",
+          "Tumši sarkana",
+          "Violeta",
+          "Pelēka",
+          "Oranža",
+        ],
+      },
+    },
+    {
+      field: "motors",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["Benzīns/gāze", "Benzīns", "Dīzelis", "Hibrīds", "Elektrisks"],
+      },
+    },
+    { field: "motoratilpums", cellEditor: numericCellEditor },
+    {
+      field: "ātrumkārba",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: { values: ["Manuāls", "Automāts"] },
+    },
+    {
+      field: "virsbūve",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: [
+          "Apvidus",
+          "Hečbeks",
+          "Kabriolets",
+          "Kupeja",
+          "Universālis",
+          "Pikaps",
+          "Sedans",
+          "Mikroautobuss",
+        ],
+      },
+    },
   ]);
+
+  const defaultColDef = useMemo(() => {
+    return {
+      flex: 1,
+      editable: true,
+      cellDataType: false,
+    };
+  }, []);
+
+  const gridRef = useRef();
 
   return (
     <>
@@ -58,6 +113,7 @@ function CarRegistry() {
           <Form.Item>
             <Input
               maxLength="17"
+              minLength="5"
               placeholder="VIN"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
               value={formData.VIN}
@@ -283,7 +339,13 @@ function CarRegistry() {
         </Form>
 
         <div className="ag-theme-alpine" style={{ height: 200, width: 1650 }}>
-          <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact>
+          <AgGridReact
+            ref={gridRef}
+            rowData={rowData}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            editType={"fullRow"}
+          ></AgGridReact>
         </div>
 
         <Link
