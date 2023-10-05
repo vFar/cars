@@ -33,8 +33,8 @@ function CarRegistry() {
 
   const handleFormSubmit = () => {
     if (formValid) {
-      const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
-      const newData = { ...formData, gads: yearValue };
+      const yearValue = formData.year ? formData.year.format("YYYY") : "";
+      const newData = { ...formData, year: yearValue };
       setRowData([...rowData, newData]);
       setFormData({});
       console.log(rowData);
@@ -43,64 +43,73 @@ function CarRegistry() {
 
   const [columnDefs] = useState([
     { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5 } },
-    { field: "numurzīme", cellEditorParams: { maxLength: 16, minLength: 2 } },
-    { field: "marka" },
-    { field: "modelis" },
-    { field: "gads" },
     {
-      field: "krāsa",
+      field: "numberplate",
+      headerName: "Number plate",
+      cellEditorParams: { maxLength: 16, minLength: 2 },
+    },
+    { field: "brand", headerName: "Brand" },
+    { field: "model", headerName: "Model" },
+    { field: "year", headerName: "Year" },
+    {
+      field: "color",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
         values: [
-          "Balta",
-          "Melna",
-          "Brūna",
-          "Dzeltena",
-          "Gaiši zila",
-          "Zila",
-          "Sudraba",
-          "Zaļa",
-          "Sarkana",
-          "Tumši sarkana",
-          "Violeta",
-          "Pelēka",
-          "Oranža",
+          "White",
+          "Black",
+          "Brown",
+          "Yellow",
+          "Light blue",
+          "Blue",
+          "Silver",
+          "Green",
+          "Red",
+          "Dark red",
+          "Purple",
+          "Gray",
+          "Orange",
         ],
       },
     },
     {
-      field: "motors",
+      field: "engine",
+      headerName: 'Engine',
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
-        values: ["Benzīns/gāze", "Benzīns", "Dīzelis", "Hibrīds", "Elektrisks"],
+        values: ["Gasoline/gas", "Gasoline", "Diesel", "Hybrid", "Electric"],
       },
     },
-    { field: "motoratilpums", cellEditor: numericCellEditor },
+    { field: "enginecapacity",
+      headerName: "Engine capacity",
+      cellEditor: numericCellEditor },
     {
-      field: "ātrumkārba",
+      field: "gearbox",
+      headerName: "Gearbox",
       cellEditor: "agSelectCellEditor",
-      cellEditorParams: { values: ["Manuāls", "Automāts"] },
+      cellEditorParams: { values: ["Manual", "Automatic"] },
     },
     {
-      field: "virsbūve",
+      field: "bodytype",
+      headerName: "Body type",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
         values: [
-          "Apvidus",
-          "Hečbeks",
-          "Kabriolets",
-          "Kupeja",
-          "Universālis",
-          "Pikaps",
-          "Sedans",
-          "Mikroautobuss",
+          "Off-road",
+          "Hatchback",
+          "Cabriolet",
+          "Coupe",
+          "Universal",
+          "Pickup",
+          "Sedan",
+          "Minibus",
         ],
       },
     },
     {
       field: "status",
       valueGetter: (params) => {
-        if(params.data.status){
+        if (params.data.status) {
           return params.data.status;
         }
         return "Available";
@@ -118,28 +127,28 @@ function CarRegistry() {
   const checkFormValidity = () => {
     const {
       VIN,
-      numurzīme,
-      marka,
-      modelis,
-      gads,
-      krāsa,
-      motors,
-      motoratilpums,
-      ātrumkārba,
-      virsbūve,
+      numberplate,
+      brand,
+      model,
+      year,
+      color,
+      engine,
+      enginecapacity,
+      gearbox,
+      bodytype,
     } = formData;
 
     const isFormValid =
       VIN &&
-      numurzīme &&
-      marka &&
-      modelis &&
-      gads &&
-      krāsa &&
-      motors &&
-      motoratilpums &&
-      ātrumkārba &&
-      virsbūve;
+      numberplate &&
+      brand &&
+      model &&
+      year &&
+      color &&
+      engine &&
+      enginecapacity &&
+      gearbox &&
+      bodytype;
 
     setFormValid(isFormValid);
   };
@@ -182,128 +191,128 @@ function CarRegistry() {
           <Form.Item>
             <Input
               maxLength="8"
-              placeholder="Numurzīme"
+              placeholder="Number plate"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-              value={formData.numurzīme}
+              value={formData.numberplate}
               onChange={(e) =>
-                setFormData({ ...formData, numurzīme: e.target.value })
+                setFormData({ ...formData, numberplate: e.target.value })
               }
             />
           </Form.Item>
           <Form.Item>
             <Input
-              placeholder="Marka"
-              value={formData.marka}
+              placeholder="Brand"
+              value={formData.brand}
               onChange={(e) =>
-                setFormData({ ...formData, marka: e.target.value })
+                setFormData({ ...formData, brand: e.target.value })
               }
             />
           </Form.Item>
           <Form.Item>
             <Input
-              placeholder="Modelis"
-              value={formData.modelis}
+              placeholder="Model"
+              value={formData.model}
               onChange={(e) =>
-                setFormData({ ...formData, modelis: e.target.value })
+                setFormData({ ...formData, model: e.target.value })
               }
             />
           </Form.Item>
           <Form.Item>
             <DatePicker
               picker="year"
-              placeholder={"Gads"}
-              value={formData.gads}
-              onChange={(date) => setFormData({ ...formData, gads: date })}
+              placeholder={"Year"}
+              value={formData.year}
+              onChange={(date) => setFormData({ ...formData, year: date })}
             />
           </Form.Item>
           <Form.Item>
             <Select
               style={{ width: 120 }}
               listHeight={450}
-              placeholder="Krāsa"
-              value={formData.krāsa}
-              onChange={(value) => setFormData({ ...formData, krāsa: value })}
+              placeholder="Color"
+              value={formData.color}
+              onChange={(value) => setFormData({ ...formData, color: value })}
               options={[
                 {
-                  value: "Balta",
-                  label: "Balta",
+                  value: "White",
+                  label: "White",
                 },
                 {
-                  value: "Melna",
-                  label: "Melna",
+                  value: "Black",
+                  label: "Black",
                 },
                 {
-                  value: "Brūna",
-                  label: "Brūna",
+                  value: "Brown",
+                  label: "Brown",
                 },
                 {
-                  value: "Dzeltena",
-                  label: "Dzeltena",
+                  value: "Yellow",
+                  label: "Yellow",
                 },
                 {
-                  value: "Gaiši zila",
-                  label: "Gaiši zila",
+                  value: "Light blue",
+                  label: "Light blue",
                 },
                 {
-                  value: "Zila",
-                  label: "Zila",
+                  value: "Blue",
+                  label: "Blue",
                 },
                 {
-                  value: "Sudraba",
-                  label: "Sudraba",
+                  value: "Silver",
+                  label: "Silver",
                 },
                 {
-                  value: "Zaļa",
-                  label: "Zaļa",
+                  value: "Green",
+                  label: "Green",
                 },
                 {
-                  value: "Sarkana",
-                  label: "Sarkana",
+                  value: "Red",
+                  label: "Red",
                 },
                 {
-                  value: "Tumši sarkana",
-                  label: "Tumši sarkana",
+                  value: "Dark red",
+                  label: "Dark red",
                 },
                 {
-                  value: "Violeta",
-                  label: "Violeta",
+                  value: "Purple",
+                  label: "Purple",
                 },
                 {
-                  value: "Pelēka",
-                  label: "Pelēka",
+                  value: "Gray",
+                  label: "Gray",
                 },
                 {
-                  value: "Oranža",
-                  label: "Oranža",
+                  value: "Orange",
+                  label: "Orange",
                 },
               ]}
             />
           </Form.Item>
           <Form.Item style={{ width: 150 }}>
             <Select
-              placeholder="Dzinējs"
-              value={formData.motors}
-              onChange={(value) => setFormData({ ...formData, motors: value })}
+              placeholder="Engine"
+              value={formData.engine}
+              onChange={(value) => setFormData({ ...formData, engine: value })}
               options={[
                 {
-                  value: "Benzīns/gāze",
-                  label: "Benzīns/gāze",
+                  value: "Gasoline/gas",
+                  label: "Gasoline/gas",
                 },
                 {
-                  value: "Benzīns",
-                  label: "Benzīns",
+                  value: "Gasoline",
+                  label: "Gasoline",
                 },
                 {
-                  value: "Dīzelis",
-                  label: "Dīzelis",
+                  value: "Diesel",
+                  label: "Diesel",
                 },
                 {
-                  value: "Hibrīds",
-                  label: "Hibrīds",
+                  value: "Hybrid",
+                  label: "Hybrid",
                 },
                 {
-                  value: "Elektrisks",
-                  label: "Elektrisks",
+                  value: "Electric",
+                  label: "Electric",
                 },
               ]}
             />
@@ -314,75 +323,71 @@ function CarRegistry() {
               style={{ width: "150px" }}
               min={0.1}
               max={10}
-              placeholder="Motora tilpums"
-              value={formData.motoratilpums}
+              placeholder="Engine capacity"
+              value={formData.enginecapacity}
               onChange={(value) =>
-                setFormData({ ...formData, motoratilpums: value })
+                setFormData({ ...formData, enginecapacity: value })
               }
             />
           </Form.Item>
           <Form.Item>
             <Select
-              placeholder="Ātrumkārbas tips"
-              value={formData.ātrumkārba}
+              placeholder="Gearbox"
+              value={formData.gearbox}
               onChange={(value) =>
-                setFormData({ ...formData, ātrumkārba: value })
+                setFormData({ ...formData, gearbox: value })
               }
               options={[
                 {
-                  value: "Manuāls",
-                  label: "Manuāls",
+                  value: "Manual",
+                  label: "Manual",
                 },
                 {
-                  value: "Automāts",
-                  label: "Automāts",
+                  value: "Automatic",
+                  label: "Automatic",
                 },
               ]}
             />
           </Form.Item>
           <Form.Item>
             <Select
-              placeholder="Virsbūves tips"
-              value={formData.virsbūve}
+              placeholder="Body type"
+              value={formData.bodytype}
               onChange={(value) =>
-                setFormData({ ...formData, virsbūve: value })
+                setFormData({ ...formData, bodytype: value })
               }
               options={[
                 {
-                  value: "Apvidus",
-                  label: "Apvidus",
+                  value: "Off-road",
+                  label: "Off-road",
                 },
                 {
-                  value: "Hečbeks",
-                  label: "Hečbeks",
+                  value: "Hatchback",
+                  label: "Hatchback",
                 },
                 {
-                  value: "Kabriolets",
-                  label: "Kabriolets",
+                  value: "Cabriolet",
+                  label: "Cabriolet",
                 },
                 {
-                  value: "Kupeja",
-                  label: "Kupeja",
+                  value: "Coupe",
+                  label: "Coupe",
                 },
                 {
-                  value: "Universālis",
-                  label: "Universālis",
+                  value: "Universal",
+                  label: "Universal",
                 },
                 {
-                  value: "Pikaps",
-                  label: "Pikaps",
+                  value: "Pickup",
+                  label: "Pickup",
                 },
                 {
-                  value: "Sedans",
-                  label: "Sedans",
+                  value: "Sedan",
+                  label: "Sedan",
                 },
                 {
-                  value: "Minivens",
-                  label: "Minivens",
-                },
-                {
-                  value: "Mikroautobuss",
-                  label: "Mikroautobuss",
+                  value: "Minibus",
+                  label: "Minibus",
                 },
               ]}
             />
