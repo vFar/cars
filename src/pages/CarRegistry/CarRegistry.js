@@ -5,6 +5,7 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import moment from "moment";
 import numericCellEditor from "./numericCellEditor.jsx";
+import "./style.css";
 
 import { Link } from "react-router-dom";
 
@@ -46,7 +47,7 @@ function CarRegistry() {
     {
       field: "numberplate",
       headerName: "Number plate",
-      cellEditorParams: { maxLength: 16, minLength: 2 },
+      cellEditorParams: { maxLength: 10, minLength: 2 },
     },
     { field: "brand", headerName: "Brand" },
     { field: "model", headerName: "Model" },
@@ -74,15 +75,17 @@ function CarRegistry() {
     },
     {
       field: "engine",
-      headerName: 'Engine',
+      headerName: "Engine",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
         values: ["Gasoline/gas", "Gasoline", "Diesel", "Hybrid", "Electric"],
       },
     },
-    { field: "enginecapacity",
+    {
+      field: "enginecapacity",
       headerName: "Engine capacity",
-      cellEditor: numericCellEditor },
+      cellEditor: numericCellEditor,
+    },
     {
       field: "gearbox",
       headerName: "Gearbox",
@@ -174,6 +177,15 @@ function CarRegistry() {
 
   return (
     <>
+      <nav className="navbar">
+        <Link
+          to="/CarSalesRegistry"
+          className="btn"
+          style={{ backgroundColor: "red" }}
+        >
+          <Button type="primary">Pārdošanas reģistrs</Button>
+        </Link>
+      </nav>
       <div>
         <Form layout="inline">
           <Form.Item>
@@ -320,6 +332,7 @@ function CarRegistry() {
           <Form.Item>
             <InputNumber
               type="number"
+              controls={false}
               style={{ width: "150px" }}
               min={0.1}
               max={10}
@@ -334,9 +347,7 @@ function CarRegistry() {
             <Select
               placeholder="Gearbox"
               value={formData.gearbox}
-              onChange={(value) =>
-                setFormData({ ...formData, gearbox: value })
-              }
+              onChange={(value) => setFormData({ ...formData, gearbox: value })}
               options={[
                 {
                   value: "Manual",
@@ -405,7 +416,7 @@ function CarRegistry() {
           </Form.Item>
         </Form>
 
-        <div className="ag-theme-alpine" style={{ height: 200, width: 1650 }}>
+        <div className="ag-theme-alpine" style={{height: "100vh", width: "100%" }}>
           <AgGridReact
             ref={gridRef}
             rowData={rowData}
@@ -415,14 +426,6 @@ function CarRegistry() {
             onCellValueChanged={handleCellValueChanged}
           ></AgGridReact>
         </div>
-
-        <Link
-          to="/CarSalesRegistry"
-          className="btn"
-          style={{ backgroundColor: "red" }}
-        >
-          <Button type="primary">Pārdošanas reģistrs</Button>
-        </Link>
       </div>
     </>
   );
