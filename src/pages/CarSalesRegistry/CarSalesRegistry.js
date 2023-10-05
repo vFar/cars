@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, Select, DatePicker } from "antd";
+import { Button, Form, Input, Select, DatePicker, InputNumber } from "antd";
 import { Link } from 'react-router-dom';
+import "./style.css";
+
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -15,96 +17,130 @@ function CarSalesRegistry() {
 
   return (
     <>
-        <Form layout="inline">
-          <Form.Item>
-            <Select
-              placeholder="Izvēlies automašīnu"
-              options={[
-                //VAJAG SELECTOT NUMURZĪMI
-                {
-                  value: "jack",
-                  label: "Jack",
-                },
-                {
-                  value: "lucy",
-                  label: "Lucy",
-                },
-                {
-                  value: "tom",
-                  label: "Tom",
-                },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Select
-              placeholder="Statuss"
-              style={{width: 260}}
-              options={[
-                {
-                  value: "Saņemts jauns pieprasījums",
-                  label: "Saņemts jauns pieprasījums",
-                },
-                {
-                  value: "Uzsākta vērtēšana",
-                  label: "Uzsākta vērtēšana",
-                },
-                {
-                  value: "Saņemts novērtējums",
-                  label: "Saņemts novērtējums",
-                },
-                {
-                  value: "Sākās automašīnu tirdzniecība",
-                  label: "Sākās automašīnu tirdzniecība",
-                },
-                {
-                  value: "Automašīnu tirdzniecība pabeigta",
-                  label: "Automašīnu tirdzniecība pabeigta",
-                },
-                {
-                  value: "Pārdošanas līgums nosūtīts pircējam",
-                  label: "Pārdošanas līgums nosūtīts pircējam",
-                },
-                {
-                  value: "Pārdots - līgums atpakaļ no pircēja",
-                  label: "Pārdots - līgums atpakaļ no pircēja",
-                },
-                {
-                  value: "Automašīna piegādāta pircējam",
-                  label: "Automašīna piegādāta pircējam",
-                },
-                {
-                  value: "Atcelts",
-                  label: "Atcelts",
-                },
-              ]}
-            />
-          </Form.Item>
-          <Form.Item>
-            <Input placeholder="Novērtētājs" />
-          </Form.Item>
-          <Form.Item>
-            <Input placeholder="Pārdošanas cena (EUR)" />
-          </Form.Item>
-          <Form.Item>
-            <DatePicker format={dateFormatList} placeholder={"Gads"}/>
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary">OK</Button>
-          </Form.Item>
-        </Form>
+      <Form layout="inline">
+        <Form.Item>
+          <InputNumber style={{width: 125}}
+            controls={false}        
+            min={0}
+            max={100}
+            formatter={(value) => `${value}%`}
+            parser={(value) => value.replace("%", "")} 
+            placeholder="Default VAT rate"
+          />  
+        </Form.Item>
 
-        {/* <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact> */}
+        <Form.Item>
+          <Button type="primary" htmlType="submit">
+            OK
+          </Button>
+        </Form.Item>
+      </Form>
 
-        <Button type="primary">Ģenerēt PDF</Button>
+      <Form layout="inline">
+        <Form.Item>
+          <Select
+            placeholder="Select vehicle"
+            options={[
+              //VAJAG SELECTOT NUMURZĪMI
+              {
+                value: "jack",
+                label: "Jack",
+              },
+              {
+                value: "lucy",
+                label: "Lucy",
+              },
+              {
+                value: "tom",
+                label: "Tom",
+              },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Select
+            placeholder="Status"
+            style={{ width: 260 }}
+            options={[
+              {
+                value: "New request received",
+                label: "New request received",
+              },
+              {
+                value: "Evaluation has begun",
+                label: "Evaluation has begun",
+              },
+              {
+                value: "Received a rating",
+                label: "Received a rating",
+              },
+              {
+                value: "Car sale has begun",
+                label: "Car sale has begun",
+              },
+              {
+                value: "Car sale has completed",
+                label: "Car sale has completed",
+              },
+              {
+                value: "Buyer has received a sales contract",
+                label: "Buyer has received a sales contract",
+              },
+              {
+                value: "Sold - Contract received from buyer",
+                label: "Sold - Contract received from buyer",
+              },
+              {
+                value: "Vehicle has been delivered to buyer",
+                label: "Vehicle has been delivered to buyer",
+              },
+              {
+                value: "Canceled",
+                label: "Canceled",
+              },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item>
+          <Input placeholder="Appraiser" />
+        </Form.Item>
 
-        <Link
-          to="/"
-          className="btn"
-          style={{ backgroundColor: "red" }}
-        >
-          <Button type="primary">Automašīnu reģistrs</Button>
-        </Link>
+        <Form.Item>
+          <InputNumber
+            placeholder="Neto"
+            controls={false}
+            min={0}
+            formatter={(value) =>
+              `€ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+            }
+          ></InputNumber>
+        </Form.Item>
+
+        <Form.Item>
+          <InputNumber
+          controls={false}
+            min={0}
+            max={100}
+            formatter={(value) => `${value}%`}
+            parser={(value) => value.replace("%", "")}
+          />
+        </Form.Item>
+
+        <Form.Item>
+          <DatePicker format={dateFormatList} placeholder={"Date"} />
+        </Form.Item>
+        <Form.Item>
+          <Button type="primary">OK</Button>
+        </Form.Item>
+      </Form>
+
+      {/* <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact> */}
+
+      <Button type="primary">Generate PDF document</Button>
+
+      <Link to="/" className="btn" style={{ backgroundColor: "red" }}>
+        <Button type="primary">Car registry</Button>
+      </Link>
     </>
   );
 }

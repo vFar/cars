@@ -2,6 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
 import moment from "moment";
+import "./style.css";
+
+
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
@@ -40,7 +43,7 @@ function CarRegistry() {
 
   const [columnDefs] = useState([
     { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5}},
-    { field: "numurzīme", cellEditorParams: { maxLength: 16, minLength: 2}},
+    { field: "numurzīme", cellEditorParams: { maxLength: 10, minLength: 2}},
     { field: "marka" },
     { field: "modelis" },
     { field: "gads" },
@@ -66,13 +69,25 @@ function CarRegistry() {
 
   return (
     <>
+      <nav className="navbar">
+        <Link
+          to="/CarSalesRegistry"
+          className="btn"
+          style={{ backgroundColor: "red" }}
+        >
+          <Button type="primary">Pārdošanas reģistrs</Button>
+        </Link>
+      </nav>
+
       <div>
         <Form layout="inline">
-          <Form.Item               rules={[
-                {
-                  required: true,
-                },
-              ]}>
+          <Form.Item
+            rules={[
+              {
+                required: true,
+              },
+            ]}
+          >
             <Input
               maxLength="17"
               minLength="5"
@@ -247,6 +262,7 @@ function CarRegistry() {
           <Form.Item>
             <InputNumber
               type="number"
+              controls={false}
               style={{ width: "150px" }}
               min={0.1}
               max={10}
@@ -352,18 +368,10 @@ function CarRegistry() {
             rowData={rowData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
-            editType={'fullRow'}
+            editType={"fullRow"}
             animateRows={true}
           ></AgGridReact>
         </div>
-
-        <Link
-          to="/CarSalesRegistry"
-          className="btn"
-          style={{ backgroundColor: "red" }}
-        >
-          <Button type="primary">Pārdošanas reģistrs</Button>
-        </Link>
       </div>
     </>
   );
