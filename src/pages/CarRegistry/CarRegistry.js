@@ -14,8 +14,8 @@ function CarRegistry() {
   const [formData, setFormData] = useState(() => {
     const savedData = localStorage.getItem("formData");
     const parsedData = savedData ? JSON.parse(savedData) : {};
-    if (parsedData.gads) {
-      parsedData.gads = moment(parsedData.gads);
+    if (parsedData.year) {
+      parsedData.year = moment(parsedData.year);
     }
     return parsedData;
   });
