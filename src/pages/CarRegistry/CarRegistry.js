@@ -97,6 +97,19 @@ function CarRegistry() {
         ],
       },
     },
+    {
+      field: "status",
+      valueGetter: (params) => {
+        if(params.data.status){
+          return params.data.status;
+        }
+        return "Available";
+      },
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["Available", "Sold"],
+      },
+    },
   ]);
   useEffect(() => {
     checkFormValidity();
