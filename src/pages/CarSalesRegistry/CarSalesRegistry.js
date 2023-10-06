@@ -85,9 +85,6 @@ function CarSalesRegistry() {
       vehicle,
       salestatus,
       appraiser,
-      netoprice,
-      vatrate,
-      fullprice,
       date,
     } = salesFormData;
 
@@ -95,9 +92,6 @@ function CarSalesRegistry() {
       vehicle &&
       salestatus &&
       appraiser &&
-      netoprice &&
-      vatrate &&
-      fullprice &&
       date;
 
     setsalesFormValid(issalesFormValid);
@@ -125,27 +119,25 @@ function CarSalesRegistry() {
   return (
     <>
       <nav className="navbar">
-        <Link to="/salesregistry" className="btn">
-          <Button type="primary">Sale Registry</Button>
+        <Link to="/" className="btn">
+          <Button type="primary">Vehicle Registry</Button>
         </Link>
 
         <Link to="/echarts" className="btn">
           <Button type="primary">Echarts</Button>
         </Link>
 
-        {/* <Button onClick={onRemoveSelected}>
-            Remove Selected
-        </Button> */}
+        <Button type="primary">Generate PDF Document</Button>
       </nav>
       <Form layout="inline">
         <Form.Item>
           <InputNumber
-            style={{ width: 125 }}
+            type="number"
+            style={{ width: 145 }}
             controls={false}
             min={0}
             max={100}
-            formatter={(value) => `${value}%`}
-            parser={(value) => value.replace("%", "")}
+            suffix="%"
             placeholder="Default VAT rate"
           />
         </Form.Item>
@@ -157,7 +149,7 @@ function CarSalesRegistry() {
         </Form.Item>
       </Form>
 
-      <Form layout="inline">
+      <Form layout="inline" className="form">
         <Form.Item>
           <Select
             placeholder="Vehicle"
@@ -175,6 +167,7 @@ function CarSalesRegistry() {
           <Select
             placeholder="Status"
             style={{ width: 260 }}
+            value={salesFormData.salestatus}
             options={[
               {
                 value: "New request received",
@@ -213,21 +206,32 @@ function CarSalesRegistry() {
                 label: "Canceled",
               },
             ]}
+            onChange={(value) =>
+              setsalesFormData({ ...salesFormData, status: value })
+            }
           />
         </Form.Item>
         <Form.Item>
-          <Input placeholder="Appraiser" />
+          <Input
+            placeholder="Appraiser"
+            onChange={(e) =>
+              setsalesFormData({ ...salesFormData, appraiser: e.target.value })
+            }
+            value={salesFormData.appraiser}
+          />
         </Form.Item>
 
-        <Form.Item>
+        {/* <Form.Item>
           <InputNumber
             placeholder="Neto"
-            type="number"
             controls={false}
+            type="decimal"
             min={0}
             prefix="€"
-            formatter={(value) =>
-              value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+            value={salesFormData.netoprice}
+            formatter={(value) => value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")}
+            onChange={(value) =>
+              setsalesFormData({ ...salesFormData, netoprice: value })
             }
           ></InputNumber>
         </Form.Item>
@@ -239,8 +243,12 @@ function CarSalesRegistry() {
             min={0}
             max={100}
             suffix="%"
-            />
-        </Form.Item>
+            value={salesFormData.vatrate}
+            onChange={(value) =>
+              setsalesFormData({ ...salesFormData, vatrate: value })
+            }
+          />
+        </Form.Item> */}
 
         <Form.Item>
           <DatePicker
@@ -253,7 +261,13 @@ function CarSalesRegistry() {
           />
         </Form.Item>
         <Form.Item>
-          <Button type="primary">OK</Button>
+          <Button
+            onClick={handleFormSubmit}
+            disalbed={!salesFormValid}
+            type="primary"
+          >
+            OK
+          </Button>
         </Form.Item>
       </Form>
 
@@ -268,14 +282,10 @@ function CarSalesRegistry() {
           defaultColDef={defaultColDef}
           editType={"fullRow"}
           onCellValueChanged={handleCellValueChanged}
+          pagination={true}
+          paginationPageSize={20}
         ></AgGridReact>
       </div>
-
-      <Button type="primary">Generate PDF Document</Button>
-
-      <Link to="/" className="btn" style={{ backgroundColor: "red" }}>
-        <Button type="primary">Vehicle Registry</Button>
-      </Link>
     </>
   );
 }
