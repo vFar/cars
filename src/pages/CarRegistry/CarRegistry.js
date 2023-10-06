@@ -5,11 +5,8 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 import moment from "moment";
 
-import "./style.css";
+import "../style.css";
 import { Link } from "react-router-dom";
-
-import numericCellEditor from './numericCellEditor.jsx';
-import decimalCellEditor from './decimalCellEditor.jsx';
 
 
 function CarRegistry() {
@@ -355,9 +352,9 @@ function CarRegistry() {
           </Form.Item>
           <Form.Item>
             <InputNumber
-              step="0.1"
               controls={false}
               style={{ width: "150px" }}
+              type='number'
               min={0.1}
               max={10}
               placeholder="Engine capacity"
@@ -385,7 +382,7 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: '120px'}}>
             <Select
               placeholder="Body type"
               value={formData.bodytype}
@@ -457,6 +454,7 @@ function CarRegistry() {
             pagination={true}
             paginationPageSize={20}
           ></AgGridReact>
+          
         </div>
       </div>
     </>

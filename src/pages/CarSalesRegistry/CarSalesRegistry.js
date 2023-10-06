@@ -1,17 +1,19 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, Select, DatePicker, InputNumber } from "antd";
-import { Link } from 'react-router-dom';
-import "./style.css";
-
+import { Link } from "react-router-dom";
+import "../style.css";
 
 import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import "ag-grid-community/styles/ag-theme-balham.css";
 import moment from "moment";
 import numericCellEditor from "./numericCellEditor.jsx";
-import "./style.css";
-
-import { Link } from "react-router-dom";
 
 function CarSalesRegistry() {
   const [salesFormValid, setsalesFormValid] = useState(false);
@@ -41,7 +43,9 @@ function CarSalesRegistry() {
 
   const handleFormSubmit = () => {
     if (salesFormValid) {
-      const dateValue = salesFormData.date ? salesFormData.date.format("YYYY-MM-DD") : "";
+      const dateValue = salesFormData.date
+        ? salesFormData.date.format("YYYY-MM-DD")
+        : "";
       const newsalesData = { ...salesFormData, date: dateValue };
       setsalesRowData([...salesRowData, newsalesData]);
       setsalesFormData({});
@@ -67,7 +71,7 @@ function CarSalesRegistry() {
       },
     },
     { field: "appraiser", headerName: "Appraiser" },
-    { field: "netoprice", headerName: "Neto price" },
+    { field: "netoprice", headerName: "Neto price"},
     { field: "vatrate", headerName: "VAT rate" },
     { field: "fullprice", headerName: "Full price" },
     { field: "date", headerName: "Date" },
@@ -77,8 +81,15 @@ function CarSalesRegistry() {
   });
 
   const checksalesFormValidity = () => {
-    const { vehicle, salestatus, appraiser, netoprice, vatrate, fullprice, date } =
-      salesFormData;
+    const {
+      vehicle,
+      salestatus,
+      appraiser,
+      netoprice,
+      vatrate,
+      fullprice,
+      date,
+    } = salesFormData;
 
     const issalesFormValid =
       vehicle &&
@@ -113,22 +124,14 @@ function CarSalesRegistry() {
 
   return (
     <>
-
-  <nav className="navbar">
-        <Link
-          to="/salesregistry"
-          className="btn"
-        >
-          <Button  type="primary">Sale Registry</Button>
+      <nav className="navbar">
+        <Link to="/salesregistry" className="btn">
+          <Button type="primary">Sale Registry</Button>
         </Link>
 
-        <Link
-          to="/echarts"
-          className="btn"
-        >
-          <Button  type="primary">Echarts</Button>
+        <Link to="/echarts" className="btn">
+          <Button type="primary">Echarts</Button>
         </Link>
-
 
         {/* <Button onClick={onRemoveSelected}>
             Remove Selected
@@ -136,14 +139,15 @@ function CarSalesRegistry() {
       </nav>
       <Form layout="inline">
         <Form.Item>
-          <InputNumber style={{width: 125}}
-            controls={false}        
+          <InputNumber
+            style={{ width: 125 }}
+            controls={false}
             min={0}
             max={100}
             formatter={(value) => `${value}%`}
-            parser={(value) => value.replace("%", "")} 
+            parser={(value) => value.replace("%", "")}
             placeholder="Default VAT rate"
-          />  
+          />
         </Form.Item>
 
         <Form.Item>
@@ -156,22 +160,15 @@ function CarSalesRegistry() {
       <Form layout="inline">
         <Form.Item>
           <Select
-            placeholder="Select vehicle"
-            options={[
-              //VAJAG SELECTOT NUMURZĪMI
-              {
-                value: "jack",
-                label: "Jack",
-              },
-              {
-                value: "lucy",
-                label: "Lucy",
-              },
-              {
-                value: "tom",
-                label: "Tom",
-              },
-            ]}
+            placeholder="Vehicle"
+            value={salesFormData.vehicle}
+            onChange={(value) =>
+              setsalesFormData({ ...salesFormData, vehicle: value })
+            }
+            options={numberplates.map((numberplate) => ({
+              value: numberplate,
+              label: numberplate,
+            }))}
           />
         </Form.Item>
         <Form.Item>
@@ -225,33 +222,54 @@ function CarSalesRegistry() {
         <Form.Item>
           <InputNumber
             placeholder="Neto"
+            type="number"
             controls={false}
             min={0}
+            prefix="€"
             formatter={(value) =>
-              `€ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+              value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
             }
           ></InputNumber>
         </Form.Item>
 
         <Form.Item>
           <InputNumber
-          controls={false}
+            controls={false}
+            placeholder="VAT"
             min={0}
             max={100}
-            formatter={(value) => `${value}%`}
-            parser={(value) => value.replace("%", "")}
-          />
+            suffix="%"
+            />
         </Form.Item>
 
         <Form.Item>
-          <DatePicker format={dateFormatList} placeholder={"Date"} />
+          <DatePicker
+            placeholder={"Date"}
+            value={salesFormData.date}
+            defaultValue={moment()}
+            onChange={(date) =>
+              setsalesFormData({ ...salesFormData, date: date })
+            }
+          />
         </Form.Item>
         <Form.Item>
           <Button type="primary">OK</Button>
         </Form.Item>
       </Form>
 
-      {/* <AgGridReact rowData={rowData} columnDefs={columnDefs} ref={gridRef}></AgGridReact> */}
+      <div
+        className="ag-theme-balham"
+        style={{ height: "80vh", width: "100%" }}
+      >
+        <AgGridReact
+          ref={gridRef}
+          rowData={salesRowData}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          editType={"fullRow"}
+          onCellValueChanged={handleCellValueChanged}
+        ></AgGridReact>
+      </div>
 
       <Button type="primary">Generate PDF Document</Button>
 
