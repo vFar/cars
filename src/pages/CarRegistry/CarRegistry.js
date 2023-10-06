@@ -1,20 +1,24 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback} from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
+import { Button, Form, Input, InputNumber, Select, DatePicker, Popconfirm } from "antd";
 import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import "ag-grid-community/styles/ag-theme-balham.css";
 import moment from "moment";
-import numericCellEditor from "./numericCellEditor.jsx";
 
+import "./style.css";
 import { Link } from "react-router-dom";
+
+import numericCellEditor from './numericCellEditor.jsx';
+import decimalCellEditor from './decimalCellEditor.jsx';
+
 
 function CarRegistry() {
   const [formValid, setFormValid] = useState(false);
   const [formData, setFormData] = useState(() => {
     const savedData = localStorage.getItem("formData");
     const parsedData = savedData ? JSON.parse(savedData) : {};
-    if (parsedData.gads) {
-      parsedData.gads = moment(parsedData.gads);
+    if (parsedData.year) {
+      parsedData.year = moment(parsedData.year);
     }
     return parsedData;
   });
@@ -42,7 +46,7 @@ function CarRegistry() {
   };
 
   const [columnDefs] = useState([
-    { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5 } },
+    { field: "VIN", cellDataType: 'text', cellEditorParams: { maxLength: 17, minLength: 5 } },
     {
       field: "numberplate",
       headerName: "Number plate",
@@ -50,7 +54,7 @@ function CarRegistry() {
     },
     { field: "brand", headerName: "Brand" },
     { field: "model", headerName: "Model" },
-    { field: "year", headerName: "Year" },
+    { field: "year", headerName: "Year", cellEditorParams: { maxLength: 4 }},
     {
       field: "color",
       cellEditor: "agSelectCellEditor",
@@ -82,7 +86,7 @@ function CarRegistry() {
     },
     { field: "enginecapacity",
       headerName: "Engine capacity",
-      cellEditor: numericCellEditor },
+      cellDataType: 'number'},
     {
       field: "gearbox",
       headerName: "Gearbox",
@@ -172,12 +176,39 @@ function CarRegistry() {
     setRowData(updatedData);
   };
 
+  const onRemoveSelected = useCallback(() => {
+    const selectedData = gridRef.current.api.getSelectedRows();
+    gridRef.current.api.applyTransaction({ remove: selectedData });
+  }, []);
+
+
   return (
     <>
+      <nav className="navbar">
+        <Link to="/salesregistry" className="btn">
+          <Button type="primary">Sale Registry</Button>
+        </Link>
+
+        <Link to="/echarts" className="btn">
+          <Button type="primary">Echarts</Button>
+        </Link>
+
+        <Popconfirm
+          title="Delete the record"
+          description="Are you sure you want to delete record/s?"
+          okText="Yes"
+          cancelText="No"
+          onConfirm={onRemoveSelected}
+        >
+          <Button danger>Delete Record</Button>
+        </Popconfirm>
+      </nav>
+
       <div>
-        <Form layout="inline">
-          <Form.Item>
+        <Form layout="inline" className="form">
+          <Form.Item style={{ width: "150px" }}>
             <Input
+              controls={false}
               maxLength="17"
               minLength="5"
               placeholder="VIN"
@@ -188,7 +219,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "150px"}}>
             <Input
               maxLength="8"
               placeholder="Number plate"
@@ -199,7 +230,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "140px"}}>
             <Input
               placeholder="Brand"
               value={formData.brand}
@@ -208,7 +239,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "140px"}}>
             <Input
               placeholder="Model"
               value={formData.model}
@@ -319,7 +350,8 @@ function CarRegistry() {
           </Form.Item>
           <Form.Item>
             <InputNumber
-              type="number"
+              step="0.1"
+              controls={false}
               style={{ width: "150px" }}
               min={0.1}
               max={10}
@@ -333,10 +365,9 @@ function CarRegistry() {
           <Form.Item>
             <Select
               placeholder="Gearbox"
+              style={{width: 110}}
               value={formData.gearbox}
-              onChange={(value) =>
-                setFormData({ ...formData, gearbox: value })
-              }
+              onChange={(value) => setFormData({ ...formData, gearbox: value })}
               options={[
                 {
                   value: "Manual",
@@ -395,34 +426,33 @@ function CarRegistry() {
 
           <Form.Item>
             <Button
+              className="btn"
               type="primary"
               htmlType="submit"
               onClick={handleFormSubmit}
               disabled={!formValid}
             >
-              OK
+              Add Record
             </Button>
           </Form.Item>
         </Form>
 
-        <div className="ag-theme-alpine" style={{ height: 200, width: 1650 }}>
+        <div
+          className="ag-theme-balham"
+          style={{ height: "80vh", width: "100%" }}
+        >
           <AgGridReact
             ref={gridRef}
             rowData={rowData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             editType={"fullRow"}
+            rowSelection={"multiple"}
             onCellValueChanged={handleCellValueChanged}
+            pagination={true}
+            paginationPageSize={20}
           ></AgGridReact>
         </div>
-
-        <Link
-          to="/CarSalesRegistry"
-          className="btn"
-          style={{ backgroundColor: "red" }}
-        >
-          <Button type="primary">Pārdošanas reģistrs</Button>
-        </Link>
       </div>
     </>
   );

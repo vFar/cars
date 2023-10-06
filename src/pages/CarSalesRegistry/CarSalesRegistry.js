@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, Select, DatePicker, InputNumber } from "antd";
 import { Link } from 'react-router-dom';
@@ -15,8 +15,34 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 function CarSalesRegistry() {
   const dateFormatList = ["DD/MM/YYYY", "DD/MM/YY", "DD-MM-YYYY", "DD-MM-YY"];
 
+  // const onRemoveSelected = useCallback(() => {
+  //   const selectedData = gridRef.current.api.getSelectedRows();
+  //   gridRef.current.api.applyTransaction({ remove: selectedData });
+  // }, []);
+
   return (
     <>
+
+  <nav className="navbar">
+        <Link
+          to="/salesregistry"
+          className="btn"
+        >
+          <Button  type="primary">Sale Registry</Button>
+        </Link>
+
+        <Link
+          to="/echarts"
+          className="btn"
+        >
+          <Button  type="primary">Echarts</Button>
+        </Link>
+
+
+        {/* <Button onClick={onRemoveSelected}>
+            Remove Selected
+        </Button> */}
+      </nav>
       <Form layout="inline">
         <Form.Item>
           <InputNumber style={{width: 125}}
@@ -134,12 +160,12 @@ function CarSalesRegistry() {
         </Form.Item>
       </Form>
 
-      {/* <AgGridReact rowData={rowData} columnDefs={columnDefs}></AgGridReact> */}
+      {/* <AgGridReact rowData={rowData} columnDefs={columnDefs} ref={gridRef}></AgGridReact> */}
 
-      <Button type="primary">Generate PDF document</Button>
+      <Button type="primary">Generate PDF Document</Button>
 
       <Link to="/" className="btn" style={{ backgroundColor: "red" }}>
-        <Button type="primary">Car registry</Button>
+        <Button type="primary">Vehicle Registry</Button>
       </Link>
     </>
   );
