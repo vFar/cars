@@ -1,23 +1,21 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback} from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
-import moment from "moment";
-import "./style.css";
-
-
-
+import { Button, Form, Input, InputNumber, Select, DatePicker, Popconfirm } from "antd";
 import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-alpine.css";
+import "ag-grid-community/styles/ag-theme-balham.css";
+import moment from "moment";
 
+import "../style.css";
 import { Link } from "react-router-dom";
-import numericCellEditor from "./numericCellEditor.jsx";
+
 
 function CarRegistry() {
+  const [formValid, setFormValid] = useState(false);
   const [formData, setFormData] = useState(() => {
     const savedData = localStorage.getItem("formData");
     const parsedData = savedData ? JSON.parse(savedData) : {};
-    if (parsedData.gads) {
-      parsedData.gads = moment(parsedData.gads);
+    if (parsedData.year) {
+      parsedData.year = moment(parsedData.year);
     }
     return parsedData;
   });
@@ -25,6 +23,10 @@ function CarRegistry() {
     const savedRowData = localStorage.getItem("rowData");
     return savedRowData ? JSON.parse(savedRowData) : [];
   });
+
+  const numberplates = rowData.map((row) => row.numberplate);
+
+  localStorage.setItem("numberplates", JSON.stringify(numberplates));
 
   useEffect(() => {
     localStorage.setItem("formData", JSON.stringify(formData));
@@ -35,27 +37,127 @@ function CarRegistry() {
   }, [rowData]);
 
   const handleFormSubmit = () => {
-    const yearValue = formData.gads ? formData.gads.format("YYYY") : "";
-    const newData = { ...formData, gads: yearValue };
-    setRowData([...rowData, newData]);
-    setFormData({});
+    if (formValid) {
+      const yearValue = formData.year ? formData.year.format("YYYY") : "";
+      const newData = { ...formData, year: yearValue };
+      setRowData([...rowData, newData]);
+      setFormData({});
+      console.log(rowData);
+    }
   };
 
   const [columnDefs] = useState([
-    { field: "VIN", cellEditorParams: { maxLength: 17, minLength: 5}},
-    { field: "numurzīme", cellEditorParams: { maxLength: 10, minLength: 2}},
-    { field: "marka" },
-    { field: "modelis" },
-    { field: "gads" },
-    { field: "krāsa", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Balta', 'Melna', 'Brūna', 'Dzeltena', 'Gaiši zila', 'Zila', 'Sudraba', 'Zaļa', 'Sarkana', 'Tumši sarkana', 'Violeta', 'Pelēka', 'Oranža']}},
-    { field: "motors", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Benzīns/gāze', 'Benzīns', 'Dīzelis', 'Hibrīds', 'Elektrisks']}},
-    { field: "motoratilpums", cellEditor: numericCellEditor },
-    { field: "ātrumkārba", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Manuāls', 'Automāts']}},
-    { field: "virsbūve", cellEditor: "agSelectCellEditor", cellEditorParams: { values: ['Apvidus', 'Hečbeks', 'Kabriolets', 'Kupeja', 'Universālis', 'Pikaps', 'Sedans', 'Mikroautobuss']}},
+    { field: "VIN", cellDataType: 'text', cellEditorParams: { maxLength: 17, minLength: 5 } },
+    {
+      field: "numberplate",
+      headerName: "Number plate",
+      cellEditorParams: { maxLength: 10, minLength: 2 },
+    },
+    { field: "brand", headerName: "Brand" },
+    { field: "model", headerName: "Model" },
+    { field: "year", headerName: "Year", cellEditorParams: { maxLength: 4 }},
+    {
+      field: "color",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: [
+          "White",
+          "Black",
+          "Brown",
+          "Yellow",
+          "Light blue",
+          "Blue",
+          "Silver",
+          "Green",
+          "Red",
+          "Dark red",
+          "Purple",
+          "Gray",
+          "Orange",
+        ],
+      },
+    },
+    {
+      field: "engine",
+      headerName: "Engine",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["Gasoline/gas", "Gasoline", "Diesel", "Hybrid", "Electric"],
+      },
+    },
+    {
+      field: "enginecapacity",
+      headerName: "Engine capacity",
+      cellDataType: 'number'},
+    {
+      field: "gearbox",
+      headerName: "Gearbox",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: { values: ["Manual", "Automatic"] },
+    },
+    {
+      field: "bodytype",
+      headerName: "Body type",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: [
+          "Off-road",
+          "Hatchback",
+          "Cabriolet",
+          "Coupe",
+          "Universal",
+          "Pickup",
+          "Sedan",
+          "Minibus",
+        ],
+      },
+    },
+    {
+      field: "status",
+      valueGetter: (params) => {
+        if (params.data.status) {
+          return params.data.status;
+        }
+        return "Available";
+      },
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["Available", "Sold"],
+      },
+    },
   ]);
+  useEffect(() => {
+    checkFormValidity();
+  });
 
+  const checkFormValidity = () => {
+    const {
+      VIN,
+      numberplate,
+      brand,
+      model,
+      year,
+      color,
+      engine,
+      enginecapacity,
+      gearbox,
+      bodytype,
+    } = formData;
 
+    const isFormValid =
+      VIN &&
+      numberplate &&
+      brand &&
+      model &&
+      year &&
+      color &&
+      engine &&
+      enginecapacity &&
+      gearbox &&
+      bodytype;
 
+    setFormValid(isFormValid);
+  };
 
   const defaultColDef = useMemo(() => {
     return {
@@ -67,28 +169,48 @@ function CarRegistry() {
 
   const gridRef = useRef();
 
+  const handleCellValueChanged = () => {
+    const updatedData = gridRef.current.api
+      .getModel()
+      .rowsToDisplay.map((rowNode) => {
+        return rowNode.data;
+      });
+    setRowData(updatedData);
+  };
+
+  const onRemoveSelected = useCallback(() => {
+    const selectedData = gridRef.current.api.getSelectedRows();
+    gridRef.current.api.applyTransaction({ remove: selectedData });
+  }, []);
+
+
   return (
     <>
       <nav className="navbar">
-        <Link
-          to="/CarSalesRegistry"
-          className="btn"
-          style={{ backgroundColor: "red" }}
-        >
-          <Button type="primary">Pārdošanas reģistrs</Button>
+        <Link to="/salesregistry" className="btn">
+          <Button type="primary">Sale Registry</Button>
         </Link>
+
+        <Link to="/echarts" className="btn">
+          <Button type="primary">Echarts</Button>
+        </Link>
+
+        <Popconfirm
+          title="Delete the record"
+          description="Are you sure you want to delete record/s?"
+          okText="Yes"
+          cancelText="No"
+          onConfirm={onRemoveSelected}
+        >
+          <Button danger>Delete Record</Button>
+        </Popconfirm>
       </nav>
 
       <div>
-        <Form layout="inline">
-          <Form.Item
-            rules={[
-              {
-                required: true,
-              },
-            ]}
-          >
+        <Form layout="inline" className="form">
+          <Form.Item style={{ width: "150px" }}>
             <Input
+              controls={false}
               maxLength="17"
               minLength="5"
               placeholder="VIN"
@@ -99,278 +221,240 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "150px"}}>
             <Input
-              placeholder="Numurzīme"
-              maxLength={16}
-              minLength={2}
+              maxLength="8"
+              placeholder="Number plate"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-              value={formData.numurzīme}
+              value={formData.numberplate}
               onChange={(e) =>
-                setFormData({ ...formData, numurzīme: e.target.value })
+                setFormData({ ...formData, numberplate: e.target.value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "140px"}}>
             <Input
-              placeholder="Marka"
-              value={formData.marka}
+              placeholder="Brand"
+              value={formData.brand}
               onChange={(e) =>
-                setFormData({ ...formData, marka: e.target.value })
+                setFormData({ ...formData, brand: e.target.value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: "140px"}}>
             <Input
-              placeholder="Modelis"
-              value={formData.modelis}
+              placeholder="Model"
+              value={formData.model}
               onChange={(e) =>
-                setFormData({ ...formData, modelis: e.target.value })
+                setFormData({ ...formData, model: e.target.value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
             />
           </Form.Item>
           <Form.Item>
             <DatePicker
               picker="year"
-              placeholder={"Gads"}
-              value={formData.gads}
-              onChange={(date) => setFormData({ ...formData, gads: date })}
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
+              placeholder={"Year"}
+              value={formData.year}
+              onChange={(date) => setFormData({ ...formData, year: date })}
             />
           </Form.Item>
           <Form.Item>
             <Select
               style={{ width: 120 }}
               listHeight={450}
-              placeholder="Krāsa"
-              value={formData.krāsa}
-              onChange={(value) => setFormData({ ...formData, krāsa: value })}
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
+              placeholder="Color"
+              value={formData.color}
+              onChange={(value) => setFormData({ ...formData, color: value })}
               options={[
                 {
-                  value: "Balta",
-                  label: "Balta",
+                  value: "White",
+                  label: "White",
                 },
                 {
-                  value: "Melna",
-                  label: "Melna",
+                  value: "Black",
+                  label: "Black",
                 },
                 {
-                  value: "Brūna",
-                  label: "Brūna",
+                  value: "Brown",
+                  label: "Brown",
                 },
                 {
-                  value: "Dzeltena",
-                  label: "Dzeltena",
+                  value: "Yellow",
+                  label: "Yellow",
                 },
                 {
-                  value: "Gaiši zila",
-                  label: "Gaiši zila",
+                  value: "Light blue",
+                  label: "Light blue",
                 },
                 {
-                  value: "Zila",
-                  label: "Zila",
+                  value: "Blue",
+                  label: "Blue",
                 },
                 {
-                  value: "Sudraba",
-                  label: "Sudraba",
+                  value: "Silver",
+                  label: "Silver",
                 },
                 {
-                  value: "Zaļa",
-                  label: "Zaļa",
+                  value: "Green",
+                  label: "Green",
                 },
                 {
-                  value: "Sarkana",
-                  label: "Sarkana",
+                  value: "Red",
+                  label: "Red",
                 },
                 {
-                  value: "Tumši sarkana",
-                  label: "Tumši sarkana",
+                  value: "Dark red",
+                  label: "Dark red",
                 },
                 {
-                  value: "Violeta",
-                  label: "Violeta",
+                  value: "Purple",
+                  label: "Purple",
                 },
                 {
-                  value: "Pelēka",
-                  label: "Pelēka",
+                  value: "Gray",
+                  label: "Gray",
                 },
                 {
-                  value: "Oranža",
-                  label: "Oranža",
+                  value: "Orange",
+                  label: "Orange",
                 },
               ]}
             />
           </Form.Item>
           <Form.Item style={{ width: 150 }}>
             <Select
-              placeholder="Dzinējs"
-              value={formData.motors}
-              onChange={(value) => setFormData({ ...formData, motors: value })}
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
+              placeholder="Engine"
+              value={formData.engine}
+              onChange={(value) => setFormData({ ...formData, engine: value })}
               options={[
                 {
-                  value: "Benzīns/gāze",
-                  label: "Benzīns/gāze",
+                  value: "Gasoline/gas",
+                  label: "Gasoline/gas",
                 },
                 {
-                  value: "Benzīns",
-                  label: "Benzīns",
+                  value: "Gasoline",
+                  label: "Gasoline",
                 },
                 {
-                  value: "Dīzelis",
-                  label: "Dīzelis",
+                  value: "Diesel",
+                  label: "Diesel",
                 },
                 {
-                  value: "Hibrīds",
-                  label: "Hibrīds",
+                  value: "Hybrid",
+                  label: "Hybrid",
                 },
                 {
-                  value: "Elektrisks",
-                  label: "Elektrisks",
+                  value: "Electric",
+                  label: "Electric",
                 },
               ]}
             />
           </Form.Item>
           <Form.Item>
             <InputNumber
-              type="number"
               controls={false}
               style={{ width: "150px" }}
+              type='number'
               min={0.1}
               max={10}
-              placeholder="Motora tilpums"
-              value={formData.motoratilpums}
+              placeholder="Engine capacity"
+              value={formData.enginecapacity}
               onChange={(value) =>
-                setFormData({ ...formData, motoratilpums: value })
+                setFormData({ ...formData, enginecapacity: value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
             />
           </Form.Item>
           <Form.Item>
             <Select
-              placeholder="Ātrumkārbas tips"
-              value={formData.ātrumkārba}
-              onChange={(value) =>
-                setFormData({ ...formData, ātrumkārba: value })
-              }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
+              placeholder="Gearbox"
+              style={{width: 110}}
+              value={formData.gearbox}
+              onChange={(value) => setFormData({ ...formData, gearbox: value })}
               options={[
                 {
-                  value: "Manuāls",
-                  label: "Manuāls",
+                  value: "Manual",
+                  label: "Manual",
                 },
                 {
-                  value: "Automāts",
-                  label: "Automāts",
+                  value: "Automatic",
+                  label: "Automatic",
                 },
               ]}
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{width: '120px'}}>
             <Select
-              placeholder="Virsbūves tips"
-              value={formData.virsbūve}
+              placeholder="Body type"
+              value={formData.bodytype}
               onChange={(value) =>
-                setFormData({ ...formData, virsbūve: value })
+                setFormData({ ...formData, bodytype: value })
               }
-              rules={[
-                {
-                  required: true,
-                },
-              ]}
               options={[
                 {
-                  value: "Apvidus",
-                  label: "Apvidus",
+                  value: "Off-road",
+                  label: "Off-road",
                 },
                 {
-                  value: "Hečbeks",
-                  label: "Hečbeks",
+                  value: "Hatchback",
+                  label: "Hatchback",
                 },
                 {
-                  value: "Kabriolets",
-                  label: "Kabriolets",
+                  value: "Cabriolet",
+                  label: "Cabriolet",
                 },
                 {
-                  value: "Kupeja",
-                  label: "Kupeja",
+                  value: "Coupe",
+                  label: "Coupe",
                 },
                 {
-                  value: "Universālis",
-                  label: "Universālis",
+                  value: "Universal",
+                  label: "Universal",
                 },
                 {
-                  value: "Pikaps",
-                  label: "Pikaps",
+                  value: "Pickup",
+                  label: "Pickup",
                 },
                 {
-                  value: "Sedans",
-                  label: "Sedans",
+                  value: "Sedan",
+                  label: "Sedan",
                 },
                 {
-                  value: "Minivens",
-                  label: "Minivens",
-                },
-                {
-                  value: "Mikroautobuss",
-                  label: "Mikroautobuss",
+                  value: "Minibus",
+                  label: "Minibus",
                 },
               ]}
             />
           </Form.Item>
 
           <Form.Item>
-            <Button type="primary" htmlType="submit" onClick={handleFormSubmit}>
-              OK
+            <Button
+              className="btn"
+              type="primary"
+              htmlType="submit"
+              onClick={handleFormSubmit}
+              disabled={!formValid}
+            >
+              Add Record
             </Button>
           </Form.Item>
         </Form>
 
-        <div className="ag-theme-alpine" style={{ height: 200, width: 1650 }}>
+        <div
+          className="ag-theme-balham"
+          style={{ height: "80vh", width: "100%" }}
+        >
           <AgGridReact
             ref={gridRef}
             rowData={rowData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             editType={"fullRow"}
-            animateRows={true}
+            rowSelection={"multiple"}
+            onCellValueChanged={handleCellValueChanged}
+            pagination={true}
+            paginationPageSize={20}
           ></AgGridReact>
+          
         </div>
       </div>
     </>

@@ -62,7 +62,11 @@ import React, {
     const isNumericKey = (event) => {
       const charStr = event.key;
       return isCharNumeric(charStr);
-    };
+    }; 
+
+    function isCharDecimal(charStr) {
+      return '.'.indexOf(charStr) === 0;
+    }
   
     const isBackspace = (event) => {
       return event.key === KEY_BACKSPACE;
