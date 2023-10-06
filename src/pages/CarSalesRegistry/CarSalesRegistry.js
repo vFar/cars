@@ -32,6 +32,9 @@ function CarSalesRegistry() {
     localStorage.setItem("salesRowData", JSON.stringify(salesRowData));
   }, [salesRowData]);
 
+  const savedNumberplates = localStorage.getItem("numberplates");
+  const numberplates = savedNumberplates ? JSON.parse(savedNumberplates) : [];
+
   const handleFormSubmit = () => {
     if (salesFormValid) {
       const dateValue = salesFormData.date ? salesFormData.date.format("YYYY-MM-DD") : "";
@@ -48,7 +51,7 @@ function CarSalesRegistry() {
       headerName: "Vehicle",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
-        values: ["vjvjvjvjjvjvjvjvjv", "asdasdadsadsads"],
+        values: numberplates,
       },
     },
     {
@@ -122,15 +125,10 @@ function CarSalesRegistry() {
               placeholder="Vehicle"
               value={salesFormData.vehicle}
               onChange={(value) => setsalesFormData({ ...salesFormData, vehicle: value })}
-              options={[
-                {
-                  value: "adsads",
-                  label: "asdasdasd",
-                },
-                {
-                  value: "tererre",
-                  label: "rrtrtere",
-                }]}
+              options={numberplates.map((numberplate) => ({
+                value: numberplate,
+                label: numberplate,
+              }))}
             />
           </Form.Item>
           <Form.Item>

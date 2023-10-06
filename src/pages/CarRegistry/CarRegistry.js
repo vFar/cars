@@ -24,6 +24,10 @@ function CarRegistry() {
     return savedRowData ? JSON.parse(savedRowData) : [];
   });
 
+  const numberplates = rowData.map((row) => row.numberplate);
+
+  localStorage.setItem("numberplates", JSON.stringify(numberplates));
+
   useEffect(() => {
     localStorage.setItem("formData", JSON.stringify(formData));
   }, [formData]);
@@ -416,7 +420,10 @@ function CarRegistry() {
           </Form.Item>
         </Form>
 
-        <div className="ag-theme-alpine" style={{height: "100vh", width: "100%" }}>
+        <div
+          className="ag-theme-alpine"
+          style={{ height: "100vh", width: "100%" }}
+        >
           <AgGridReact
             ref={gridRef}
             rowData={rowData}
