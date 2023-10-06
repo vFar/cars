@@ -1,13 +1,26 @@
-import React, { useEffect, useState, useMemo, useRef, useCallback} from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker, Popconfirm } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  DatePicker,
+  Popconfirm,
+} from "antd";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 import moment from "moment";
-
 import "../style.css";
-import { Link } from "react-router-dom";
 
+import { Link } from "react-router-dom";
 
 function CarRegistry() {
   const [formValid, setFormValid] = useState(false);
@@ -47,7 +60,11 @@ function CarRegistry() {
   };
 
   const [columnDefs] = useState([
-    { field: "VIN", cellDataType: 'text', cellEditorParams: { maxLength: 17, minLength: 5 } },
+    {
+      field: "VIN",
+      cellDataType: "text",
+      cellEditorParams: { maxLength: 17, minLength: 5 },
+    },
     {
       field: "numberplate",
       headerName: "Number plate",
@@ -55,7 +72,7 @@ function CarRegistry() {
     },
     { field: "brand", headerName: "Brand" },
     { field: "model", headerName: "Model" },
-    { field: "year", headerName: "Year", cellEditorParams: { maxLength: 4 }},
+    { field: "year", headerName: "Year", cellEditorParams: { maxLength: 4 } },
     {
       field: "color",
       cellEditor: "agSelectCellEditor",
@@ -88,7 +105,8 @@ function CarRegistry() {
     {
       field: "enginecapacity",
       headerName: "Engine capacity",
-      cellDataType: 'number'},
+      cellDataType: "number",
+    },
     {
       field: "gearbox",
       headerName: "Gearbox",
@@ -183,7 +201,6 @@ function CarRegistry() {
     gridRef.current.api.applyTransaction({ remove: selectedData });
   }, []);
 
-
   return (
     <>
       <nav className="navbar">
@@ -205,12 +222,10 @@ function CarRegistry() {
           <Button danger>Delete Record</Button>
         </Popconfirm>
       </nav>
-
       <div>
         <Form layout="inline" className="form">
           <Form.Item style={{ width: "150px" }}>
             <Input
-              controls={false}
               maxLength="17"
               minLength="5"
               placeholder="VIN"
@@ -221,7 +236,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item style={{width: "150px"}}>
+          <Form.Item>
             <Input
               maxLength="8"
               placeholder="Number plate"
@@ -232,7 +247,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item style={{width: "140px"}}>
+          <Form.Item>
             <Input
               placeholder="Brand"
               value={formData.brand}
@@ -241,7 +256,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item style={{width: "140px"}}>
+          <Form.Item>
             <Input
               placeholder="Model"
               value={formData.model}
@@ -352,9 +367,9 @@ function CarRegistry() {
           </Form.Item>
           <Form.Item>
             <InputNumber
+              type="number"
               controls={false}
               style={{ width: "150px" }}
-              type='number'
               min={0.1}
               max={10}
               placeholder="Engine capacity"
@@ -367,7 +382,6 @@ function CarRegistry() {
           <Form.Item>
             <Select
               placeholder="Gearbox"
-              style={{width: 110}}
               value={formData.gearbox}
               onChange={(value) => setFormData({ ...formData, gearbox: value })}
               options={[
@@ -382,7 +396,7 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
-          <Form.Item style={{width: '120px'}}>
+          <Form.Item>
             <Select
               placeholder="Body type"
               value={formData.bodytype}
@@ -434,7 +448,7 @@ function CarRegistry() {
               onClick={handleFormSubmit}
               disabled={!formValid}
             >
-              Add Record
+              Add record
             </Button>
           </Form.Item>
         </Form>
@@ -454,7 +468,6 @@ function CarRegistry() {
             pagination={true}
             paginationPageSize={20}
           ></AgGridReact>
-          
         </div>
       </div>
     </>
