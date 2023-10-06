@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { AgGridReact } from "ag-grid-react";
 import { Button, Form, Input, Select, DatePicker, InputNumber } from "antd";
 import { Link } from 'react-router-dom';
@@ -7,18 +7,109 @@ import "./style.css";
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
+import moment from "moment";
+import numericCellEditor from "./numericCellEditor.jsx";
+import "./style.css";
 
-// import { BrowserRouter, Routes, Route } from 'react-router-dom';
-// import CarRegistry from './pages/CarRegistry.js';
-// import CarSalesRegistry  from './pages/CarSalesRegistry.js';
+import { Link } from "react-router-dom";
 
 function CarSalesRegistry() {
-  const dateFormatList = ["DD/MM/YYYY", "DD/MM/YY", "DD-MM-YYYY", "DD-MM-YY"];
+  const [salesFormValid, setsalesFormValid] = useState(false);
+  const [salesFormData, setsalesFormData] = useState(() => {
+    const salesSavedData = localStorage.getItem("salesFormData");
+    const salesParsedData = salesSavedData ? JSON.parse(salesSavedData) : {};
+    if (salesParsedData.date) {
+      salesParsedData.date = moment(salesParsedData.date);
+    }
+    return salesParsedData;
+  });
+  const [salesRowData, setsalesRowData] = useState(() => {
+    const savedsalesRowData = localStorage.getItem("salesRowData");
+    return savedsalesRowData ? JSON.parse(savedsalesRowData) : [];
+  });
 
-  // const onRemoveSelected = useCallback(() => {
-  //   const selectedData = gridRef.current.api.getSelectedRows();
-  //   gridRef.current.api.applyTransaction({ remove: selectedData });
-  // }, []);
+  useEffect(() => {
+    localStorage.setItem("salesFormData", JSON.stringify(salesFormData));
+  }, [salesFormData]);
+
+  useEffect(() => {
+    localStorage.setItem("salesRowData", JSON.stringify(salesRowData));
+  }, [salesRowData]);
+
+  const savedNumberplates = localStorage.getItem("numberplates");
+  const numberplates = savedNumberplates ? JSON.parse(savedNumberplates) : [];
+
+  const handleFormSubmit = () => {
+    if (salesFormValid) {
+      const dateValue = salesFormData.date ? salesFormData.date.format("YYYY-MM-DD") : "";
+      const newsalesData = { ...salesFormData, date: dateValue };
+      setsalesRowData([...salesRowData, newsalesData]);
+      setsalesFormData({});
+      console.log(salesRowData);
+    }
+  };
+
+  const [columnDefs] = useState([
+    {
+      field: "vehicle",
+      headerName: "Vehicle",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: numberplates,
+      },
+    },
+    {
+      field: "salestatus",
+      headerName: "Status",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: ["qeqeqeqe", "bbbbbbbbbbbbbb"],
+      },
+    },
+    { field: "appraiser", headerName: "Appraiser" },
+    { field: "netoprice", headerName: "Neto price" },
+    { field: "vatrate", headerName: "VAT rate" },
+    { field: "fullprice", headerName: "Full price" },
+    { field: "date", headerName: "Date" },
+  ]);
+  useEffect(() => {
+    checksalesFormValidity();
+  });
+
+  const checksalesFormValidity = () => {
+    const { vehicle, salestatus, appraiser, netoprice, vatrate, fullprice, date } =
+      salesFormData;
+
+    const issalesFormValid =
+      vehicle &&
+      salestatus &&
+      appraiser &&
+      netoprice &&
+      vatrate &&
+      fullprice &&
+      date;
+
+    setsalesFormValid(issalesFormValid);
+  };
+
+  const defaultColDef = useMemo(() => {
+    return {
+      flex: 1,
+      editable: true,
+      cellDataType: false,
+    };
+  }, []);
+
+  const gridRef = useRef();
+
+  const handleCellValueChanged = () => {
+    const updatedData = gridRef.current.api
+      .getModel()
+      .rowsToDisplay.map((rowNode) => {
+        return rowNode.data;
+      });
+    setsalesRowData(updatedData);
+  };
 
   return (
     <>

@@ -27,6 +27,10 @@ function CarRegistry() {
     return savedRowData ? JSON.parse(savedRowData) : [];
   });
 
+  const numberplates = rowData.map((row) => row.numberplate);
+
+  localStorage.setItem("numberplates", JSON.stringify(numberplates));
+
   useEffect(() => {
     localStorage.setItem("formData", JSON.stringify(formData));
   }, [formData]);
@@ -50,7 +54,7 @@ function CarRegistry() {
     {
       field: "numberplate",
       headerName: "Number plate",
-      cellEditorParams: { maxLength: 16, minLength: 2 },
+      cellEditorParams: { maxLength: 10, minLength: 2 },
     },
     { field: "brand", headerName: "Brand" },
     { field: "model", headerName: "Model" },
@@ -78,13 +82,14 @@ function CarRegistry() {
     },
     {
       field: "engine",
-      headerName: 'Engine',
+      headerName: "Engine",
       cellEditor: "agSelectCellEditor",
       cellEditorParams: {
         values: ["Gasoline/gas", "Gasoline", "Diesel", "Hybrid", "Electric"],
       },
     },
-    { field: "enginecapacity",
+    {
+      field: "enginecapacity",
       headerName: "Engine capacity",
       cellDataType: 'number'},
     {
