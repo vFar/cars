@@ -1,13 +1,36 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  InputNumber,
+  Select,
+  DatePicker,
+  Modal,
+  Timeline,
+} from "antd";
+import {
+  SettingOutlined,
+  InsertRowBelowOutlined,
+  EditOutlined,
+} from "@ant-design/icons";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
+
+//nestrada RichSelect
+import { ModuleRegistry } from "@ag-grid-community/core";
+import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
+import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
+
 import moment from "moment";
 import "../style.css";
 
 import { Link } from "react-router-dom";
 
+// nestrada
+ModuleRegistry.registerModules([ClientSideRowModelModule, RichSelectModule]);
+const { RangePicker } = DatePicker;
 function CarSalesRegistry() {
   const [salesFormValid, setsalesFormValid] = useState(false);
   const [salesFormData, setsalesFormData] = useState(() => {
@@ -34,32 +57,41 @@ function CarSalesRegistry() {
   const savedNumberplates = localStorage.getItem("numberplates");
   const numberplates = savedNumberplates ? JSON.parse(savedNumberplates) : [];
 
-  const handleFormSubmit = () => {
-    if (salesFormValid) {
-      const dateValue = salesFormData.date
-        ? salesFormData.date.format("YYYY-MM-DD")
-        : "";
-      const newsalesData = { ...salesFormData, date: dateValue };
-      setsalesRowData([...salesRowData, newsalesData]);
-      setsalesFormData({});
-      console.log(salesRowData);
-    }
-  };
-
   const [columnDefs] = useState([
     {
       field: "vehicle",
       headerName: "Vehicle",
+      cellEditor: "agRichSelectCellEditor",
+      cellEditorParams: {
+        values: numberplates,
+        filterList: true,
+        searchType: "match",
+        allowTyping: true,
+        valueListMaxHeight: 220,
+      },
     },
     {
       field: "salestatus",
       headerName: "Status",
+      cellEditor: "agSelectCellEditor",
+      cellEditorParams: {
+        values: [
+          "New request received",
+          "Evaluation has begun",
+          "Received a rating",
+          "Car sale has begun",
+          "Car sale has completed",
+          "Buyer has received a sales contract",
+          "Sold - Contract received from buyer",
+          "Vehicle has been delivered to buyer",
+        ],
+      },
     },
     { field: "appraiser", headerName: "Appraiser" },
     { field: "netoprice", headerName: "Neto price" },
     { field: "vatrate", headerName: "VAT rate" },
     { field: "fullprice", headerName: "Full price" },
-    { field: "date", headerName: "Date" },
+    { field: "date", headerName: "Date", cellDataType: "dateString" },
   ]);
   useEffect(() => {
     checksalesFormValidity();
@@ -92,6 +124,38 @@ function CarSalesRegistry() {
     setsalesRowData(updatedData);
   };
 
+  const filterOption = (input, option) =>
+    (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
+
+  //Modal
+  const [isModalOpen1, setIsModalOpen1] = useState(false);
+  const [isModalOpen2, setIsModalOpen2] = useState(false);
+  const [isModalOpen3, setIsModalOpen3] = useState(false);
+
+  const handleFormSubmit = () => {
+    if (salesFormValid) {
+      const dateValue = salesFormData.date
+        ? salesFormData.date.format("YYYY-MM-DD")
+        : "";
+      const newSalesData = { ...salesFormData, date: dateValue };
+  
+      setsalesRowData((prevData) => [...prevData, newSalesData]);
+      setsalesFormData({});
+      setIsModalOpen2(false);
+  
+      setFilteredSalesRowData((prevData) => [...prevData, newSalesData]);
+    }
+  };
+
+  // const showModal = () => {
+  //   setIsModalOpen(true);
+  // };
+  // const handleOk = () => {
+  //   setIsModalOpen(false);
+  // };
+  // const handleCancel = () => {
+  //   setIsModalOpen(false);
+  // };
   const allStatuses = [
     "New request received",
     "Evaluation has begun",
@@ -134,6 +198,16 @@ function CarSalesRegistry() {
     setSelectedStatus(value);
     setAvailableStatuses(updateAvailableStatuses(value));
   };
+  const [filteredSalesRowData, setFilteredSalesRowData] = useState(salesRowData);
+  const handleDateRangeChange = (dates, dateStrings) => {
+    const filteredData = salesRowData.filter((row) => {
+      const date = moment(row.date, "YYYY-MM-DD");
+      return date.isBetween(dateStrings[0], dateStrings[1], null, "[]");
+    });
+  
+    // Обновление данных в гриде
+    setFilteredSalesRowData(filteredData);
+  };
 
   return (
     <>
@@ -149,102 +223,161 @@ function CarSalesRegistry() {
         <Button type="primary">Generate PDF Document</Button>
       </nav>
       <div>
-        <Form layout="inline">
-          <Form.Item>
-            <InputNumber
-              type="number"
-              style={{ width: 145 }}
-              controls={false}
-              min={0}
-              max={100}
-              suffix="%"
-              placeholder="Default VAT rate"
-            />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit">
-              Set default VAT
-            </Button>
-          </Form.Item>
-        </Form>
-        <Form layout="inline" className="form">
-          <Form.Item style={{ width: "200px" }}>
-            <Select
-              placeholder="Vehicle"
-              value={salesFormData.vehicle}
-              onChange={(value) =>
-                setsalesFormData({ ...salesFormData, vehicle: value })
-              }
-              options={numberplates.map((numberplate) => ({
-                value: numberplate,
-                label: numberplate,
-              }))}
-            />
-          </Form.Item>
-          <Form.Item style={{ width: "260px" }}>
-            <Select
-              placeholder="Status"
-              value={selectedStatus}
-              onChange={(value) => {
-                setSelectedStatus(value);
-                handleStatusChange(value);
-                setsalesFormData({ ...salesFormData, salestatus: value });
-              }}
-            >
-              {availableStatuses.map((status) => (
-                <Select.Option key={status} value={status}>
-                  {status}
-                </Select.Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item>
-            <Input
-              placeholder="Appraiser"
-              value={salesFormData.appraiser}
-              onChange={(e) =>
-                setsalesFormData({
-                  ...salesFormData,
-                  appraiser: e.target.value,
-                })
-              }
-            />
-          </Form.Item>
-          <Form.Item>
-            <DatePicker
-              placeholder={"Date"}
-              value={salesFormData.date}
-              onChange={(date) =>
-                setsalesFormData({ ...salesFormData, date: date })
-              }
-            />
-          </Form.Item>
+        <Button
+          icon={<SettingOutlined />}
+          onClick={() => setIsModalOpen1(true)}
+        ></Button>
 
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              onClick={handleFormSubmit}
-              disabled={!salesFormValid}
-            >
-              OK
-            </Button>
-          </Form.Item>
-        </Form>
+        <Modal
+          title="VAT value"
+          htmlType="submit"
+          open={isModalOpen1}
+          okText="Set Default VAT Value"
+          onOk={() => setIsModalOpen1(false)}
+          onCancel={() => setIsModalOpen1(false)}
+        >
+          <Form>
+            <Form.Item label="Default VAT rate: ">
+              <InputNumber
+                type="number"
+                controls={false}
+                min={0}
+                max={100}
+                suffix="%"
+              />
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        <Button
+          icon={<InsertRowBelowOutlined />}
+          onClick={() => setIsModalOpen2(true)}
+        >
+          Add
+        </Button>
+
+        <Modal
+          title="Add Record"
+          open={isModalOpen2}
+          onOk={handleFormSubmit}
+          okButtonProps={{
+            disabled: !salesFormValid,
+          }}
+          onCancel={() => setIsModalOpen2(false)}
+        >
+          <div style={{ display: "flex", gap: "50px" }}>
+            <Form className="form">
+              <Form.Item label="Vehicle">
+                <Select
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={filterOption}
+                  value={salesFormData.vehicle}
+                  onChange={(value) =>
+                    setsalesFormData({ ...salesFormData, vehicle: value })
+                  }
+                  options={numberplates.map((numberplate) => ({
+                    value: numberplate,
+                    label: numberplate,
+                  }))}
+                />
+              </Form.Item>
+              <Form.Item label="Status">
+                <Select
+                  placeholder="Status"
+                  value={selectedStatus}
+                  onChange={(value) => {
+                    setSelectedStatus(value);
+                    handleStatusChange(value);
+                    setsalesFormData({ ...salesFormData, salestatus: value });
+                  }}
+                >
+                  {availableStatuses.map((status) => (
+                    <Select.Option key={status} value={status}>
+                      {status}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Appraiser">
+                <Input
+                  value={salesFormData.appraiser}
+                  onChange={(e) =>
+                    setsalesFormData({
+                      ...salesFormData,
+                      appraiser: e.target.value,
+                    })
+                  }
+                />
+              </Form.Item>
+              <Form.Item label="Date">
+                <DatePicker
+                  value={salesFormData.date}
+                  onChange={(date) =>
+                    setsalesFormData({ ...salesFormData, date: date })
+                  }
+                />
+              </Form.Item>
+            </Form>
+
+            <Timeline
+              items={[
+                { children: "New request received", color: "green" },
+                { children: "Evaluation has begun", color: "gray" },
+                { children: "Received a rating", color: "gray" },
+                { children: "Car sale has begun", color: "gray" },
+                { children: "Car sale has completed", color: "gray" },
+                {
+                  children: "Buyer has received a sales contract",
+                  color: "gray",
+                },
+                {
+                  children: "Sold - Contract received from buyer",
+                  color: "gray",
+                },
+                {
+                  children: "Vehicle has been delivered to buyer",
+                  color: "gray",
+                },
+                { children: "Canceled", color: "red" },
+              ]}
+            ></Timeline>
+          </div>
+        </Modal>
+
+        <Button icon={<EditOutlined />} onClick={() => setIsModalOpen3(true)}>
+          Edit Record
+        </Button>
+
+        <Modal
+          title="Edit Record"
+          open={isModalOpen3}
+          onOk={() => setIsModalOpen3(false)}
+          onCancel={() => setIsModalOpen3(false)}
+        >
+          <Form>
+            <Form.Item></Form.Item>
+          </Form>
+        </Modal>
 
         <div
           className="ag-theme-balham"
           style={{ height: "80vh", width: "100%" }}
         >
+          <RangePicker
+            style={{ marginBottom: "16px" }}
+            onChange={handleDateRangeChange}
+          />
           <AgGridReact
             ref={gridRef}
-            rowData={salesRowData}
+            rowData={filteredSalesRowData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
             editType={"fullRow"}
+            rowSelection="multiple"
             onCellValueChanged={handleCellValueChanged}
             pagination={true}
-            paginationPageSize={20}
+            paginationPageSize={50}
           ></AgGridReact>
         </div>
       </div>
