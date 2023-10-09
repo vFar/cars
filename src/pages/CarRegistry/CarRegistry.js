@@ -104,7 +104,7 @@ function CarRegistry() {
     },
     {
       field: "enginecapacity",
-      headerName: "Engine capacity",
+      headerName: "Engine capacity (L)",
       cellDataType: "number",
     },
     {
@@ -199,7 +199,10 @@ function CarRegistry() {
   const onRemoveSelected = useCallback(() => {
     const selectedData = gridRef.current.api.getSelectedRows();
     gridRef.current.api.applyTransaction({ remove: selectedData });
-  }, []);
+
+    const updatedRowData = rowData.filter((row) => !selectedData.includes(row));
+    localStorage.setItem("rowData", JSON.stringify(updatedRowData));
+  }, [rowData]);
 
   return (
     <>
@@ -372,7 +375,7 @@ function CarRegistry() {
               style={{ width: "150px" }}
               min={0.1}
               max={10}
-              placeholder="Engine capacity"
+              placeholder="Engine capacity (L)"
               value={formData.enginecapacity}
               onChange={(value) =>
                 setFormData({ ...formData, enginecapacity: value })
@@ -442,7 +445,7 @@ function CarRegistry() {
 
           <Form.Item>
             <Button
-              className="btn"
+              className="btn2"
               type="primary"
               htmlType="submit"
               onClick={handleFormSubmit}

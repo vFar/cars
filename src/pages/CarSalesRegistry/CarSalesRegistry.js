@@ -50,18 +50,10 @@ function CarSalesRegistry() {
     {
       field: "vehicle",
       headerName: "Vehicle",
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: numberplates,
-      },
     },
     {
       field: "salestatus",
       headerName: "Status",
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: ["qeqeqeqe", "bbbbbbbbbbbbbb"],
-      },
     },
     { field: "appraiser", headerName: "Appraiser" },
     { field: "netoprice", headerName: "Neto price" },
@@ -100,6 +92,49 @@ function CarSalesRegistry() {
     setsalesRowData(updatedData);
   };
 
+  const allStatuses = [
+    "New request received",
+    "Evaluation has begun",
+    "Received a rating",
+    "Car sale has begun",
+    "Car sale has completed",
+    "Buyer has received a sales contract",
+    "Sold - Contract received from buyer",
+    "Vehicle has been delivered to buyer",
+    "Canceled",
+  ];
+
+  const [selectedStatus, setSelectedStatus] = useState(allStatuses[0]);
+
+  const updateAvailableStatuses = (selected) => {
+    const selectedIndex = allStatuses.indexOf(selected);
+
+    if (selectedIndex === -1) {
+      return allStatuses;
+    }
+
+    const availableStatuses = [
+      allStatuses[selectedIndex - 1],
+      allStatuses[selectedIndex],
+      allStatuses[selectedIndex + 1],
+    ].filter((status) => status !== undefined);
+
+    if (!availableStatuses.includes(allStatuses[8])) {
+      availableStatuses.push(allStatuses[8]);
+    }
+
+    return availableStatuses;
+  };
+
+  const [availableStatuses, setAvailableStatuses] = useState(
+    updateAvailableStatuses(selectedStatus)
+  );
+
+  const handleStatusChange = (value) => {
+    setSelectedStatus(value);
+    setAvailableStatuses(updateAvailableStatuses(value));
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -128,12 +163,12 @@ function CarSalesRegistry() {
           </Form.Item>
           <Form.Item>
             <Button type="primary" htmlType="submit">
-              OK
+              Set default VAT
             </Button>
           </Form.Item>
         </Form>
         <Form layout="inline" className="form">
-          <Form.Item>
+          <Form.Item style={{ width: "200px" }}>
             <Select
               placeholder="Vehicle"
               value={salesFormData.vehicle}
@@ -146,24 +181,22 @@ function CarSalesRegistry() {
               }))}
             />
           </Form.Item>
-          <Form.Item>
+          <Form.Item style={{ width: "260px" }}>
             <Select
               placeholder="Status"
-              value={salesFormData.salestatus}
-              onChange={(value) =>
-                setsalesFormData({ ...salesFormData, salestatus: value })
-              }
-              options={[
-                {
-                  value: "adsads",
-                  label: "asdasdasd",
-                },
-                {
-                  value: "tererre",
-                  label: "rrtrtere",
-                },
-              ]}
-            />
+              value={selectedStatus}
+              onChange={(value) => {
+                setSelectedStatus(value);
+                handleStatusChange(value);
+                setsalesFormData({ ...salesFormData, salestatus: value });
+              }}
+            >
+              {availableStatuses.map((status) => (
+                <Select.Option key={status} value={status}>
+                  {status}
+                </Select.Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item>
             <Input

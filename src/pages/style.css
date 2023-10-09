@@ -10,7 +10,10 @@ input::-webkit-inner-spin-button {
 
 .navbar{
     height: 50px;
-    background-color: gray;
+    background-color: rgb(55, 116, 248);
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .form{
@@ -20,5 +23,13 @@ input::-webkit-inner-spin-button {
 }
 
 .btn{
+  margin-left: 20px;
+  width: 120px !important;
+  height: 50px !important;
+  display: flex;
+  align-items: center;
+}
+
+.btn2{
   width: 120px !important;
 }
