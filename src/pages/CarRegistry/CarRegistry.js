@@ -200,7 +200,10 @@ function CarRegistry() {
   const onRemoveSelected = useCallback(() => {
     const selectedData = gridRef.current.api.getSelectedRows();
     gridRef.current.api.applyTransaction({ remove: selectedData });
-  }, []);
+
+    const updatedRowData = rowData.filter((row) => !selectedData.includes(row));
+    localStorage.setItem("rowData", JSON.stringify(updatedRowData));
+  }, [rowData]);
 
   return (
     <>
