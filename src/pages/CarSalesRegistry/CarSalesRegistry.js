@@ -1,19 +1,12 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
-import { Button, Form, Input, Select, DatePicker, InputNumber } from "antd";
-import { Link } from "react-router-dom";
-import "../style.css";
-
+import { Button, Form, Input, InputNumber, Select, DatePicker } from "antd";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
-
-//nestrada RichSelect
-import { ModuleRegistry } from "@ag-grid-community/core";
-import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
-import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
-
 import moment from "moment";
-import numericCellEditor from "./numericCellEditor.jsx";
+import "../style.css";
+
+import { Link } from "react-router-dom";
 
 function CarSalesRegistry() {
   const [salesFormValid, setsalesFormValid] = useState(false);
@@ -41,28 +34,32 @@ function CarSalesRegistry() {
   const savedNumberplates = localStorage.getItem("numberplates");
   const numberplates = savedNumberplates ? JSON.parse(savedNumberplates) : [];
 
+  const handleFormSubmit = () => {
+    if (salesFormValid) {
+      const dateValue = salesFormData.date
+        ? salesFormData.date.format("YYYY-MM-DD")
+        : "";
+      const newsalesData = { ...salesFormData, date: dateValue };
+      setsalesRowData([...salesRowData, newsalesData]);
+      setsalesFormData({});
+      console.log(salesRowData);
+    }
+  };
+
   const [columnDefs] = useState([
     {
       field: "vehicle",
       headerName: "Vehicle",
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: numberplates,
-      },
     },
     {
       field: "salestatus",
       headerName: "Status",
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: ["qeqeqeqe", "bbbbbbbbbbbbbb"],
-      },
     },
     { field: "appraiser", headerName: "Appraiser" },
     { field: "netoprice", headerName: "Neto price" },
     { field: "vatrate", headerName: "VAT rate" },
     { field: "fullprice", headerName: "Full price" },
-    { field: "date", headerName: "Date", cellDataType: "dateString" },
+    { field: "date", headerName: "Date" },
   ]);
   useEffect(() => {
     checksalesFormValidity();
@@ -95,6 +92,49 @@ function CarSalesRegistry() {
     setsalesRowData(updatedData);
   };
 
+  const allStatuses = [
+    "New request received",
+    "Evaluation has begun",
+    "Received a rating",
+    "Car sale has begun",
+    "Car sale has completed",
+    "Buyer has received a sales contract",
+    "Sold - Contract received from buyer",
+    "Vehicle has been delivered to buyer",
+    "Canceled",
+  ];
+
+  const [selectedStatus, setSelectedStatus] = useState(allStatuses[0]);
+
+  const updateAvailableStatuses = (selected) => {
+    const selectedIndex = allStatuses.indexOf(selected);
+
+    if (selectedIndex === -1) {
+      return allStatuses;
+    }
+
+    const availableStatuses = [
+      allStatuses[selectedIndex - 1],
+      allStatuses[selectedIndex],
+      allStatuses[selectedIndex + 1],
+    ].filter((status) => status !== undefined);
+
+    if (!availableStatuses.includes(allStatuses[8])) {
+      availableStatuses.push(allStatuses[8]);
+    }
+
+    return availableStatuses;
+  };
+
+  const [availableStatuses, setAvailableStatuses] = useState(
+    updateAvailableStatuses(selectedStatus)
+  );
+
+  const handleStatusChange = (value) => {
+    setSelectedStatus(value);
+    setAvailableStatuses(updateAvailableStatuses(value));
+  };
+
   return (
     <>
       <nav className="navbar">
@@ -108,138 +148,105 @@ function CarSalesRegistry() {
 
         <Button type="primary">Generate PDF Document</Button>
       </nav>
-      <Form layout="inline">
-        <Form.Item>
-          <InputNumber
-            style={{ width: 125 }}
-            controls={false}
-            min={0}
-            max={100}
-            formatter={(value) => `${value}%`}
-            parser={(value) => value.replace("%", "")}
-            placeholder="Default VAT rate"
-          />
-        </Form.Item>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit">
-            OK
-          </Button>
-        </Form.Item>
-      </Form>
-
-      <Form layout="inline">
-        <Form.Item>
-          <Select
-            placeholder="Vehicle"
-            value={salesFormData.vehicle}
-            onChange={(value) =>
-              setsalesFormData({ ...salesFormData, vehicle: value })
-            }
-            options={numberplates.map((numberplate) => ({
-              value: numberplate,
-              label: numberplate,
-            }))}
-          />
-        </Form.Item>
-        <Form.Item>
-          <Select
-            placeholder="Status"
-            style={{ width: 260 }}
-            options={[
-              {
-                value: "New request received",
-                label: "New request received",
-              },
-              {
-                value: "Evaluation has begun",
-                label: "Evaluation has begun",
-              },
-              {
-                value: "Received a rating",
-                label: "Received a rating",
-              },
-              {
-                value: "Car sale has begun",
-                label: "Car sale has begun",
-              },
-              {
-                value: "Car sale has completed",
-                label: "Car sale has completed",
-              },
-              {
-                value: "Buyer has received a sales contract",
-                label: "Buyer has received a sales contract",
-              },
-              {
-                value: "Sold - Contract received from buyer",
-                label: "Sold - Contract received from buyer",
-              },
-              {
-                value: "Vehicle has been delivered to buyer",
-                label: "Vehicle has been delivered to buyer",
-              },
-              {
-                value: "Canceled",
-                label: "Canceled",
-              },
-            ]}
-          />
-        </Form.Item>
-        <Form.Item>
-          <Input placeholder="Appraiser" />
-        </Form.Item>
-
-        <Form.Item>
-          <InputNumber
-            placeholder="Neto"
-            type="number"
-            controls={false}
-            min={0}
-            prefix="€"
-            formatter={(value) =>
-              value.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
-            }
-          ></InputNumber>
-        </Form.Item>
-
-        <Form.Item>
-          <InputNumber
-            controls={false}
-            placeholder="VAT"
-            min={0}
-            max={100}
-            suffix="%"
+      <div>
+        <Form layout="inline">
+          <Form.Item>
+            <InputNumber
+              type="number"
+              style={{ width: 145 }}
+              controls={false}
+              min={0}
+              max={100}
+              suffix="%"
+              placeholder="Default VAT rate"
             />
-        </Form.Item>
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit">
+              Set default VAT
+            </Button>
+          </Form.Item>
+        </Form>
+        <Form layout="inline" className="form">
+          <Form.Item style={{ width: "200px" }}>
+            <Select
+              placeholder="Vehicle"
+              value={salesFormData.vehicle}
+              onChange={(value) =>
+                setsalesFormData({ ...salesFormData, vehicle: value })
+              }
+              options={numberplates.map((numberplate) => ({
+                value: numberplate,
+                label: numberplate,
+              }))}
+            />
+          </Form.Item>
+          <Form.Item style={{ width: "260px" }}>
+            <Select
+              placeholder="Status"
+              value={selectedStatus}
+              onChange={(value) => {
+                setSelectedStatus(value);
+                handleStatusChange(value);
+                setsalesFormData({ ...salesFormData, salestatus: value });
+              }}
+            >
+              {availableStatuses.map((status) => (
+                <Select.Option key={status} value={status}>
+                  {status}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item>
+            <Input
+              placeholder="Appraiser"
+              value={salesFormData.appraiser}
+              onChange={(e) =>
+                setsalesFormData({
+                  ...salesFormData,
+                  appraiser: e.target.value,
+                })
+              }
+            />
+          </Form.Item>
+          <Form.Item>
+            <DatePicker
+              placeholder={"Date"}
+              value={salesFormData.date}
+              onChange={(date) =>
+                setsalesFormData({ ...salesFormData, date: date })
+              }
+            />
+          </Form.Item>
 
-        <Form.Item>
-          <DatePicker
-            placeholder={"Date"}
-            value={salesFormData.date}
-            defaultValue={moment()}
-            onChange={(date) =>
-              setsalesFormData({ ...salesFormData, date: date })
-            }
-          />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary">OK</Button>
-        </Form.Item>
-      </Form>
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              onClick={handleFormSubmit}
+              disabled={!salesFormValid}
+            >
+              OK
+            </Button>
+          </Form.Item>
+        </Form>
 
-      <div
-        className="ag-theme-balham"
-        style={{ height: "80vh", width: "100%" }}
-      >
-        <AgGridReact
-          ref={gridRef}
-          rowData={salesRowData}
-          columnDefs={columnDefs}
-          defaultColDef={defaultColDef}
-          editType={"fullRow"}
-          onCellValueChanged={handleCellValueChanged}
-        ></AgGridReact>
+        <div
+          className="ag-theme-balham"
+          style={{ height: "80vh", width: "100%" }}
+        >
+          <AgGridReact
+            ref={gridRef}
+            rowData={salesRowData}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            editType={"fullRow"}
+            onCellValueChanged={handleCellValueChanged}
+            pagination={true}
+            paginationPageSize={20}
+          ></AgGridReact>
+        </div>
       </div>
     </>
   );

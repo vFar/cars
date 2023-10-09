@@ -104,8 +104,9 @@ function CarRegistry() {
     },
     {
       field: "enginecapacity",
-      headerName: "Engine capacity",
-      cellDataType: 'number'},
+      headerName: "Engine capacity (L)",
+      cellDataType: "number",
+    },
     {
       field: "gearbox",
       headerName: "Gearbox",
