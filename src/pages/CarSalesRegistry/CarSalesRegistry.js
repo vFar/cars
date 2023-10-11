@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { AgGridReact } from "ag-grid-react";
 import {
   Button,
@@ -8,9 +14,15 @@ import {
   Select,
   DatePicker,
   Modal,
-  Timeline
+  Timeline,
+  Layout,
+  Popconfirm
 } from "antd";
-import { SettingOutlined, InsertRowBelowOutlined, EditOutlined } from "@ant-design/icons";
+import {
+  SettingOutlined,
+  InsertRowBelowOutlined,
+  EditOutlined,
+} from "@ant-design/icons";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 
@@ -23,6 +35,18 @@ import moment from "moment";
 import "../style.css";
 
 import { Link } from "react-router-dom";
+
+import {
+  BarChartOutlined,
+  ShoppingFilled,
+  CarFilled,
+  InfoCircleFilled,
+} from "@ant-design/icons";
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faReact } from "@fortawesome/free-brands-svg-icons";
+
+const { Header } = Layout;
 
 // nestrada
 ModuleRegistry.registerModules([ClientSideRowModelModule, RichSelectModule]);
@@ -57,68 +81,47 @@ function CarSalesRegistry() {
     {
       field: "vehicle",
       headerName: "Vehicle",
-      cellEditor: "agRichSelectCellEditor",
-      cellEditorParams: {
-        values: numberplates,
-        filterList: true,
-        searchType: "match",
-        allowTyping: true,
-        valueListMaxHeight: 220,
-      },
+      sortable: true,
+      filter: "agTextColumnFilter",
     },
     {
       field: "salestatus",
       headerName: "Status",
-      cellEditor: "agSelectCellEditor",
-      cellEditorParams: {
-        values: [
-          "New request received",
-          "Evaluation has begun",
-          "Received a rating",
-          "Car sale has begun",
-          "Car sale has completed",
-          "Buyer has received a sales contract",
-          "Sold - Contract received from buyer",
-          "Vehicle has been delivered to buyer",
-        ],
-      },
+      sortable: true,
     },
-    { field: "appraiser", headerName: "Appraiser" },
-    { field: "netoprice", headerName: "Neto price" },
-    { field: "vatrate", headerName: "VAT rate" },
-    { field: "fullprice", headerName: "Full price" },
-    { field: "date", headerName: "Date", cellDataType: "dateString" },
+    {
+      field: "appraiser",
+      headerName: "Appraiser",
+      sortable: true,
+      filter: "agTextColumnFilter",
+    },
+    { field: "netoprice", headerName: "Neto price", sortable: true },
+    { field: "vatrate", headerName: "VAT rate", sortable: true },
+    { field: "fullprice", headerName: "Full price", sortable: true },
+    {
+      field: "date",
+      headerName: "Date",
+      cellDataType: "dateString",
+      sortable: true,
+    },
   ]);
   useEffect(() => {
     checksalesFormValidity();
   });
 
   const checksalesFormValidity = () => {
-    const { vehicle, salestatus, appraiser, date } = salesFormData;
-
-    const issalesFormValid = vehicle && salestatus && appraiser && date;
-
+    const { vehicle, appraiser } = salesFormData;
+    const issalesFormValid = vehicle && appraiser;
     setsalesFormValid(issalesFormValid);
   };
 
   const defaultColDef = useMemo(() => {
     return {
       flex: 1,
-      editable: true,
-      cellDataType: false,
     };
   }, []);
 
   const gridRef = useRef();
-
-  const handleCellValueChanged = () => {
-    const updatedData = gridRef.current.api
-      .getModel()
-      .rowsToDisplay.map((rowNode) => {
-        return rowNode.data;
-      });
-    setsalesRowData(updatedData);
-  };
 
   const filterOption = (input, option) =>
     (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
@@ -151,20 +154,109 @@ function CarSalesRegistry() {
   //   setIsModalOpen(false);
   // };
 
+  const allStatuses = [
+    "New request received",
+    "Evaluation has begun",
+    "Received a rating",
+    "Car sale has begun",
+    "Car sale has completed",
+    "Buyer has received a sales contract",
+    "Sold - Contract received from buyer",
+    "Vehicle has been delivered to buyer",
+    "Canceled",
+  ];
+
+  const [selectedStatus, setSelectedStatus] = useState(allStatuses[0]);
+
+  const updateAvailableStatuses = (selected) => {
+    const selectedIndex = allStatuses.indexOf(selected);
+
+    if (selectedIndex === -1) {
+      return allStatuses;
+    }
+
+    const availableStatuses = [
+      allStatuses[selectedIndex - 1],
+      allStatuses[selectedIndex],
+      allStatuses[selectedIndex + 1],
+    ].filter((status) => status !== undefined);
+
+    if (!availableStatuses.includes(allStatuses[8])) {
+      availableStatuses.push(allStatuses[8]);
+    }
+
+    return availableStatuses;
+  };
+
+  const [availableStatuses, setAvailableStatuses] = useState(
+    updateAvailableStatuses(selectedStatus)
+  );
+
+  const handleStatusChange = (value) => {
+    setSelectedStatus(value);
+    setAvailableStatuses(updateAvailableStatuses(value));
+  };
+
+  const [deleteDisabled, setDeleteDisabled] = useState(true);
+  const [editDisabled, setEditDisabled] = useState(false);
+  
+  const onSelectionChanged = useCallback(() => {
+    const selectedRows = gridRef.current.api.getSelectedRows();
+    if(selectedRows.length >= 1){
+      setDeleteDisabled(false)
+    }else{
+      setDeleteDisabled(true)
+    }
+
+    if(selectedRows.length > 1)
+    setEditDisabled(true)
+    
+    if(selectedRows.length === 1)
+    setEditDisabled(false)
+  }, []);
 
   return (
     <>
-      <nav className="navbar">
-        <Link to="/" className="btn">
-          <Button type="primary">Vehicle Registry</Button>
-        </Link>
+      <Layout>
+        <Header className="dashboardSider">
+          <Link to="/">
+          <FontAwesomeIcon className="dashboardBtn App-logo" size="2x" icon={faReact}/>
+          </Link>
 
-        <Link to="/echarts" className="btn">
-          <Button type="primary">Echarts</Button>
-        </Link>
+          <div style={{ display: "flex", gap: "50px" }}>
+            <Link to="/carregistry">
+              <Button
+                icon={<CarFilled />}
+                type="primary"
+                className="dashboardBtn"
+              >
+                Car Registry
+              </Button>
+            </Link>
 
-        <Button type="primary">Generate PDF Document</Button>
-      </nav>
+            <Link to="/salesregistry">
+              <Button
+                icon={<ShoppingFilled />}
+                className="dashboardBtn activeLink"
+                type="primary"
+              >
+                Sale Registry
+              </Button>
+            </Link>
+
+            <Link to="/echarts">
+              <Button
+                icon={<BarChartOutlined />}
+                className="dashboardBtn"
+                type="primary"
+              >
+                Diagrams
+              </Button>
+            </Link>
+          </div>
+        </Header>
+      </Layout>
+
       <div>
         <Button
           icon={<SettingOutlined />}
@@ -173,10 +265,12 @@ function CarSalesRegistry() {
 
         <Modal
           title="VAT value"
+          keyboard={false}
+          maskClosable={false}
           htmlType="submit"
           open={isModalOpen1}
-          okText="Set Default VAT Value"
           onOk={() => setIsModalOpen1(false)}
+          okText="Set"
           onCancel={() => setIsModalOpen1(false)}
         >
           <Form>
@@ -201,14 +295,17 @@ function CarSalesRegistry() {
 
         <Modal
           title="Add Record"
+          keyboard={false}
+          maskClosable={false}
           open={isModalOpen2}
           onOk={handleFormSubmit}
+          okText="Add"
           okButtonProps={{
             disabled: !salesFormValid,
           }}
           onCancel={() => setIsModalOpen2(false)}
         >
-          <div style={{ display: "flex", gap: "50px"}}>
+          <div style={{ display: "flex", gap: "50px" }}>
             <Form className="form">
               <Form.Item label="Vehicle">
                 <Select
@@ -225,52 +322,6 @@ function CarSalesRegistry() {
                   }))}
                 />
               </Form.Item>
-              <Form.Item label="Status">
-                <Select
-                  value={salesFormData.salestatus}
-                  onChange={(value) =>
-                    setsalesFormData({ ...salesFormData, salestatus: value })
-                  }
-                  options={[
-                    {
-                      value: "New request received",
-                      label: "New request received",
-                    },
-                    {
-                      value: "Evaluation has begun",
-                      label: "Evaluation has begun",
-                    },
-                    {
-                      value: "Received a rating",
-                      label: "Received a rating",
-                    },
-                    {
-                      value: "Car sale has begun",
-                      label: "Car sale has begun",
-                    },
-                    {
-                      value: "Car sale has completed",
-                      label: "Car sale has completed",
-                    },
-                    {
-                      value: "Buyer has received a sales contract",
-                      label: "Buyer has received a sales contract",
-                    },
-                    {
-                      value: "Sold - Contract received from buyer",
-                      label: "Sold - Contract received from buyer",
-                    },
-                    {
-                      value: "Vehicle has been delivered to buyer",
-                      label: "Vehicle has been delivered to buyer",
-                    },
-                    {
-                      value: "Canceled",
-                      label: "Canceled",
-                    },
-                  ]}
-                />
-              </Form.Item>
               <Form.Item label="Appraiser">
                 <Input
                   value={salesFormData.appraiser}
@@ -282,11 +333,153 @@ function CarSalesRegistry() {
                   }
                 />
               </Form.Item>
-              <Form.Item label="Date">
-                <DatePicker
-                  value={salesFormData.date}
-                  onChange={(date) =>
-                    setsalesFormData({ ...salesFormData, date: date })
+            </Form>
+
+            <Timeline
+              items={[
+                { children: "New request received", color: "green" },
+                { children: "Evaluation has begun", color: "gray" },
+                { children: "Received a rating", color: "gray" },
+                { children: "Car sale has begun", color: "gray" },
+                { children: "Car sale has completed", color: "gray" },
+                {
+                  children: "Buyer has received a sales contract",
+                  color: "gray",
+                },
+                {
+                  children: "Sold - Contract received from buyer",
+                  color: "gray",
+                },
+                {
+                  children: "Vehicle has been delivered to buyer",
+                  color: "gray",
+                },
+              ]}
+            ></Timeline>
+          </div>
+        </Modal>
+
+        <Button icon={<EditOutlined />} disabled={editDisabled} onClick={() => setIsModalOpen3(true)}>
+          Edit
+        </Button>
+        
+
+        <Popconfirm
+          title="Cancel the sale"
+          description="Are you sure you want to cancel car sale?"
+          okText="Yes"
+          cancelText="No"
+        >
+          <Button danger disabled={deleteDisabled}>Cancel Sale</Button>
+        </Popconfirm>
+
+        <Modal
+          keyboard={false}
+          maskClosable={false}
+          title="Edit Record"
+          open={isModalOpen3}
+          okText={'Save'}
+          cancelText={'Quit'}
+          onOk={() => setIsModalOpen3(false)}
+          onCancel={() => setIsModalOpen3(false)}
+          footer={(_, { OkBtn, CancelBtn }) => (
+            <>
+              <Button danger>Cancel Sale</Button>
+              <CancelBtn />
+              <OkBtn />
+            </>
+          )}
+  
+        >
+          <div style={{ display: "flex" }}>
+            <Form>
+              <Form.Item label="Vehicle">
+                <Select
+                  name="vehicleEdit"
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={filterOption}
+                  value={salesFormData.vehicle}
+                  onChange={(value) =>
+                    setsalesFormData({ ...salesFormData, vehicle: value })
+                  }
+                  options={numberplates.map((numberplate) => ({
+                    value: numberplate,
+                    label: numberplate,
+                  }))}
+                />
+              </Form.Item>
+
+              <Form.Item label="Status">
+                <Select
+                  value={selectedStatus}
+                  onChange={(value) => {
+                    setSelectedStatus(value);
+                    handleStatusChange(value);
+                    setsalesFormData({ ...salesFormData, salestatus: value });
+                  }}
+                >
+                  {availableStatuses.map((status) => (
+                    <Select.Option key={status} value={status}>
+                      {status}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="Appraiser">
+                <Input
+                  value={salesFormData.appraiser}
+                  onChange={(e) =>
+                    setsalesFormData({
+                      ...salesFormData,
+                      appraiser: e.target.value,
+                    })
+                  }
+                />
+              </Form.Item>
+
+              <Form.Item label="Neto ">
+                <Input
+                  disabled
+                  addonBefore="€"
+                  type="number"
+                  value={salesFormData.neto}
+                  onChange={(e) =>
+                    setsalesFormData({
+                      ...salesFormData,
+                      netoprice: e.target.value,
+                    })
+                  }
+                />
+              </Form.Item>
+
+              <Form.Item label="VAT Rate ">
+                <Input
+                  disabled
+                  addonAfter="%"
+                  type="number"
+                  value={salesFormData.neto}
+                  onChange={(e) =>
+                    setsalesFormData({
+                      ...salesFormData,
+                      netoprice: e.target.value,
+                    })
+                  }
+                />
+              </Form.Item>
+
+              <Form.Item label="Full price">
+                <Input
+                  disabled
+                  addonBefore="€"
+                  type="number"
+                  value={salesFormData.neto}
+                  onChange={(e) =>
+                    setsalesFormData({
+                      ...salesFormData,
+                      netoprice: e.target.value,
+                    })
                   }
                 />
               </Form.Item>
@@ -295,31 +488,25 @@ function CarSalesRegistry() {
             <Timeline
               items={[
                 { children: "New request received", color: "green" },
-                { children: "Evaluation has begun", color: "gray", },
+                { children: "Evaluation has begun", color: "gray" },
                 { children: "Received a rating", color: "gray" },
-                { children: "Car sale has begun", color: "gray", },
+                { children: "Car sale has begun", color: "gray" },
                 { children: "Car sale has completed", color: "gray" },
-                { children: "Buyer has received a sales contract", color: "gray", },
-                { children: "Sold - Contract received from buyer", color: "gray", },
-                { children: "Vehicle has been delivered to buyer", color: "gray" },
-                { children: "Canceled", color: "red", },
-
+                {
+                  children: "Buyer has received a sales contract",
+                  color: "gray",
+                },
+                {
+                  children: "Sold - Contract received from buyer",
+                  color: "gray",
+                },
+                {
+                  children: "Vehicle has been delivered to buyer",
+                  color: "gray",
+                },
               ]}
             ></Timeline>
           </div>
-        </Modal>
-        
-
-        <Button icon={<EditOutlined />} onClick={() => setIsModalOpen3(true)}>
-          Edit Record
-        </Button>
-
-        <Modal title="fuck you" open={isModalOpen3}  onOk={() => setIsModalOpen3(false)} onCancel={() => setIsModalOpen3(false)}>
-          <Form>
-            <Form.Item>
-
-            </Form.Item>
-          </Form>
         </Modal>
 
         <div
@@ -331,11 +518,10 @@ function CarSalesRegistry() {
             rowData={salesRowData}
             columnDefs={columnDefs}
             defaultColDef={defaultColDef}
-            editType={"fullRow"}
             rowSelection="multiple"
-            onCellValueChanged={handleCellValueChanged}
             pagination={true}
             paginationPageSize={50}
+            onSelectionChanged={onSelectionChanged}
           ></AgGridReact>
         </div>
       </div>

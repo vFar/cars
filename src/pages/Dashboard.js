@@ -1,28 +1,61 @@
 import React from "react";
-
-import CarRegistry from '../pages/CarRegistry/CarRegistry.js';
-import CarSalesRegistry  from '../pages/CarSalesRegistry/CarSalesRegistry.js';
-import ECharts  from '../pages/ECharts.js';
-
-
 import { Link } from 'react-router-dom';
-import { Button } from 'antd';
+
+import { BarChartOutlined , ShoppingFilled, CarFilled, InfoCircleFilled } from "@ant-design/icons";
+import { Layout, Button } from 'antd';
+
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faReact } from "@fortawesome/free-brands-svg-icons";
+
+
+const { Header } = Layout;
 
 
 function App() {
   return (
     <>
-        <Link to="/salesregistry" className="btn">
-          <Button type="primary">Sale Registry</Button>
-        </Link>
+      <Layout>
+        <Header className="dashboardSider">
+          <Link to="/">
 
-        <Link to="/echarts" className="btn">
-          <Button type="primary">Echarts</Button>
-        </Link>
+          <FontAwesomeIcon className="dashboardBtn App-logo" size="2x" icon={faReact}/>
 
-        <Link to="/carregistry" className="btn">
-          <Button type="primary">Vehicle Registry</Button>
-        </Link>
+          </Link>
+
+          <div style={{ display: "flex", gap: "50px" }}>
+            <Link to="/carregistry">
+              <Button
+                icon={<CarFilled />}
+                type="primary"
+                className="dashboardBtn"
+              >
+                Car Registry
+              </Button>
+            </Link>
+
+            <Link to="/salesregistry">
+              <Button
+                icon={<ShoppingFilled />}
+                className="dashboardBtn"
+                type="primary"
+              >
+                Sale Registry
+              </Button>
+            </Link>
+
+            <Link to="/echarts">
+              <Button
+                icon={<BarChartOutlined />}
+                className="dashboardBtn"
+                type="primary"
+              >
+                Diagrams
+              </Button>
+            </Link>
+          </div>
+        </Header>
+      </Layout>
     </>
   );
 }
