@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { AgGridReact } from "ag-grid-react";
+import PdfDocument from "../PdfDocument";
+import { PDFDownloadLink } from "@react-pdf/renderer";
 import {
   Button,
   Form,
@@ -115,15 +117,6 @@ function CarSalesRegistry() {
 
   const gridRef = useRef();
 
-  const handleCellValueChanged = () => {
-    const updatedData = gridRef.current.api
-      .getModel()
-      .rowsToDisplay.map((rowNode) => {
-        return rowNode.data;
-      });
-    setsalesRowData(updatedData);
-  };
-
   const filterOption = (input, option) =>
     (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
 
@@ -138,11 +131,11 @@ function CarSalesRegistry() {
         ? salesFormData.date.format("YYYY-MM-DD")
         : "";
       const newSalesData = { ...salesFormData, date: dateValue };
-  
+
       setsalesRowData((prevData) => [...prevData, newSalesData]);
       setsalesFormData({});
       setIsModalOpen2(false);
-  
+
       setFilteredSalesRowData((prevData) => [...prevData, newSalesData]);
     }
   };
@@ -198,17 +191,50 @@ function CarSalesRegistry() {
     setSelectedStatus(value);
     setAvailableStatuses(updateAvailableStatuses(value));
   };
-  const [filteredSalesRowData, setFilteredSalesRowData] = useState(salesRowData);
+  const [filteredSalesRowData, setFilteredSalesRowData] =
+    useState(salesRowData);
+
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const handleDateRangeChange = (dates, dateStrings) => {
+    setStartDate(dateStrings[0]);
+    setEndDate(dateStrings[1]);
     const filteredData = salesRowData.filter((row) => {
       const date = moment(row.date, "YYYY-MM-DD");
       return date.isBetween(dateStrings[0], dateStrings[1], null, "[]");
     });
-  
-    // Обновление данных в гриде
+
     setFilteredSalesRowData(filteredData);
   };
+  const [selectedRowForEdit, setSelectedRowForEdit] = useState(null);
+  const [editedRowData, setEditedRowData] = useState(null);
+  const updateLocalStorageData = (data) => {
+    localStorage.setItem("salesRowData", JSON.stringify(data));
+  };
 
+  const filteredDataWithStatus = filteredSalesRowData.filter((item) => {
+    return (
+      item.salestatus === "Sold - Contract received from buyer" ||
+      item.salestatus === "Vehicle has been delivered to buyer"
+    );
+  });
+  const rowCount = filteredDataWithStatus.length;
+
+  const totalFullPrice = filteredDataWithStatus.reduce((total, item) => {
+    return total + parseFloat(item.fullprice);
+  }, 0);
+
+  const isDataChanged = (editedData, originalData) => {
+    return (
+      editedData.vehicle !== originalData.vehicle ||
+      editedData.salestatus !== originalData.salestatus ||
+      editedData.appraiser !== originalData.appraiser ||
+      editedData.netoprice !== originalData.netoprice ||
+      editedData.vatrate !== originalData.vatrate ||
+      editedData.fullprice !== originalData.fullprice ||
+      editedData.date !== originalData.date
+    );
+  };
   return (
     <>
       <nav className="navbar">
@@ -345,29 +371,157 @@ function CarSalesRegistry() {
           </div>
         </Modal>
 
-        <Button icon={<EditOutlined />} onClick={() => setIsModalOpen3(true)}>
+        <Button
+          icon={<EditOutlined />}
+          onClick={() => {
+            setIsModalOpen3(true);
+            setEditedRowData(selectedRowForEdit);
+          }}
+        >
           Edit Record
         </Button>
 
         <Modal
           title="Edit Record"
           open={isModalOpen3}
-          onOk={() => setIsModalOpen3(false)}
-          onCancel={() => setIsModalOpen3(false)}
+          onOk={() => {
+            if (isDataChanged(editedRowData, selectedRowForEdit)) {
+              const updatedData = filteredSalesRowData.map((row) =>
+                row === selectedRowForEdit ? editedRowData : row
+              );
+              setFilteredSalesRowData(updatedData);
+              updateLocalStorageData(updatedData);
+            }
+            setIsModalOpen3(false);
+          }}
+          onCancel={() => {
+            setIsModalOpen3(false);
+          }}
         >
-          <Form>
-            <Form.Item></Form.Item>
-          </Form>
-        </Modal>
+          <div style={{ display: "flex" }}>
+            <Form
+              initialValues={selectedRowForEdit}
+              onValuesChange={(changedValues) => {
+                setEditedRowData((prevData) => ({
+                  ...prevData,
+                  ...changedValues,
+                }));
+              }}
+            >
+              <Form.Item label="Vehicle" name="vehicle">
+                <Select
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={filterOption}
+                  options={numberplates.map((numberplate) => ({
+                    value: numberplate,
+                    label: numberplate,
+                  }))}
+                />
+              </Form.Item>
 
+              <Form.Item label="Status" name="salestatus">
+                <Select
+                  value={selectedStatus}
+                  onChange={(value) => {
+                    setSelectedStatus(value);
+                    handleStatusChange(value);
+                   
+                  }}
+                >
+                  {availableStatuses.map((status) => (
+                    <Select.Option key={status} value={status}>
+                      {status}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="Appraiser" name="appraiser">
+                <Input
+            
+                />
+              </Form.Item>
+
+              <Form.Item label="Neto price" name="netoprice">
+                <Input
+                  disabled
+                  addonBefore="€"
+                  type="number"
+                 
+                />
+              </Form.Item>
+
+              <Form.Item label="VAT Rate ">
+                <Input
+                  disabled
+                  addonAfter="%"
+                  type="number"
+                  
+                />
+              </Form.Item>
+
+              <Form.Item label="Full price" name="fullprice">
+                <Input
+                  disabled
+                  addonBefore="€"
+                  type="number"
+                  
+    
+                />
+              </Form.Item>
+            </Form>
+
+            <Timeline
+              items={[
+                { children: "New request received", color: "green" },
+                { children: "Evaluation has begun", color: "gray" },
+                { children: "Received a rating", color: "gray" },
+                { children: "Car sale has begun", color: "gray" },
+                { children: "Car sale has completed", color: "gray" },
+                {
+                  children: "Buyer has received a sales contract",
+                  color: "gray",
+                },
+                {
+                  children: "Sold - Contract received from buyer",
+                  color: "gray",
+                },
+                {
+                  children: "Vehicle has been delivered to buyer",
+                  color: "gray",
+                },
+                { children: "Canceled", color: "red" },
+              ]}
+            ></Timeline>
+          </div>
+        </Modal>
+        <RangePicker
+          style={{ marginBottom: "16px" }}
+          onChange={handleDateRangeChange}
+        />
+        <Button>
+          <PDFDownloadLink
+            document={
+              <PdfDocument
+                data={filteredDataWithStatus}
+                startDate={startDate}
+                endDate={endDate}
+                rowCount={rowCount}
+                totalFullPrice={totalFullPrice}
+              />
+            }
+            fileName="sales_data.pdf"
+          >
+            {({ loading }) =>
+              loading ? "Loading document..." : "Download PDF"
+            }
+          </PDFDownloadLink>
+        </Button>
         <div
           className="ag-theme-balham"
           style={{ height: "80vh", width: "100%" }}
         >
-          <RangePicker
-            style={{ marginBottom: "16px" }}
-            onChange={handleDateRangeChange}
-          />
           <AgGridReact
             ref={gridRef}
             rowData={filteredSalesRowData}
@@ -375,9 +529,15 @@ function CarSalesRegistry() {
             defaultColDef={defaultColDef}
             editType={"fullRow"}
             rowSelection="multiple"
-            onCellValueChanged={handleCellValueChanged}
             pagination={true}
             paginationPageSize={50}
+            onRowSelected={(event) => {
+              if (event.node.isSelected()) {
+                setSelectedRowForEdit(event.data);
+              } else {
+                setSelectedRowForEdit(null);
+              }
+            }}
           ></AgGridReact>
         </div>
       </div>
