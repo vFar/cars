@@ -22,6 +22,7 @@ import "ag-grid-community/styles/ag-theme-balham.css";
 import moment from "moment";
 import "../style.css";
 import { InsertRowBelowOutlined, EditOutlined } from "@ant-design/icons";
+import Navbar from '../Navbar.js';
 
 import {
   BarChartOutlined,
@@ -30,11 +31,7 @@ import {
   InfoCircleFilled,
 } from "@ant-design/icons";
 import { Link } from "react-router-dom";
-
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faReact } from "@fortawesome/free-brands-svg-icons";
-
-const { Header } = Layout;
+import ECharts from "../ECharts";
 
 function CarRegistry() {
   const [formValid, setFormValid] = useState(false);
@@ -82,15 +79,16 @@ function CarRegistry() {
       field: "numberplate",
       headerName: "Number plate",
     },
-    { field: "brand", headerName: "Brand" },
-    { field: "model", headerName: "Model" },
-    { field: "year", headerName: "Year" },
+    { field: "brand", headerName: "Brand", sortable: true},
+    { field: "model", headerName: "Model", sortable: true},
+    { field: "year", headerName: "Year", sortable: true},
     {
       field: "color",
     },
     {
       field: "engine",
       headerName: "Engine",
+      sortable: true,
     },
     {
       field: "enginecapacity",
@@ -101,13 +99,16 @@ function CarRegistry() {
     {
       field: "gearbox",
       headerName: "Gearbox",
+      sortable: true,
     },
     {
       field: "bodytype",
       headerName: "Body type",
+      sortable: true,
     },
     {
       field: "status",
+      sortable: true,
       valueGetter: (params) => {
         if (params.data.status) {
           return params.data.status;
@@ -169,67 +170,33 @@ function CarRegistry() {
   const [isModalOpen1, setIsModalOpen1] = useState(false);
   const [isModalOpen2, setIsModalOpen2] = useState(false);
 
-  const [disabled, setDisabled] = useState(true);
-  const [editDisabled, setEditDisabled] = useState(false);
+  const [deleteDisabled, setDeleteDisabled] = useState(true);
+  const [editDisabled, setEditDisabled] = useState(true);
 
 
   const onSelectionChanged = useCallback(() => {
     const selectedRows = gridRef.current.api.getSelectedRows();
-    if(selectedRows.length >= 1){
-      setDisabled(false)
-    }else{
-      setDisabled(true)
-    }
+    if(selectedRows.length >= 1)
+      setDeleteDisabled(false)
 
     if(selectedRows.length > 1)
-    setEditDisabled(true)
+      setEditDisabled(true)
+
+    if(selectedRows.length < 1)
+      setEditDisabled(true)
+      setDeleteDisabled(true)
     
     if(selectedRows.length === 1)
-    setEditDisabled(false)
+      setEditDisabled(false)
+      setDeleteDisabled(false)
+
+    if(selectedRows.length === 0)
+      setDeleteDisabled(true)
   }, []);
   return (
     <>
-      <Layout>
-        <Header className="dashboardSider">
-          <Link to="/">
-          <FontAwesomeIcon className="dashboardBtn App-logo" size="2x" icon={faReact}/>
-
-          </Link>
-
-          <div style={{ display: "flex", gap: "50px" }}>
-            <Link to="/carregistry">
-              <Button
-                icon={<CarFilled />}
-                type="primary"
-                className="dashboardBtn activeLink"
-              >
-                Car Registry
-              </Button>
-            </Link>
-
-            <Link to="/salesregistry">
-              <Button
-                icon={<ShoppingFilled />}
-                className="dashboardBtn"
-                type="primary"
-              >
-                Sale Registry
-              </Button>
-            </Link>
-
-            <Link to="/echarts">
-              <Button
-                icon={<BarChartOutlined />}
-                className="dashboardBtn"
-                type="primary"
-              >
-                Diagrams
-              </Button>
-            </Link>
-          </div>
-        </Header>
-      </Layout>
-
+      <Navbar/>
+      
       <Popconfirm
         title="Delete the record"
         description="Are you sure you want to delete record/s?"
@@ -237,7 +204,7 @@ function CarRegistry() {
         cancelText="No"
         onConfirm={onRemoveSelected}
       >
-      <Button danger disabled={disabled}>Delete Record</Button>
+      <Button danger disabled={deleteDisabled}>Delete Record</Button>
       </Popconfirm>
 
       <Button
@@ -260,7 +227,8 @@ function CarRegistry() {
         }}
         onCancel={() => setIsModalOpen1(false)}
       >
-        <Form className="form">
+        <Form layout="vertical" className="form">
+          <div>
           <Form.Item label="VIN">
             <Input
               maxLength="17"
@@ -272,6 +240,74 @@ function CarRegistry() {
               }
             />
           </Form.Item>
+
+          <Form.Item label="Brand">
+            <Input
+              maxLength={20}
+              value={formData.brand}
+              onChange={(e) =>
+                setFormData({ ...formData, brand: e.target.value })
+              }
+            />
+          </Form.Item>
+
+          <Form.Item label="Year">
+            <DatePicker
+              picker="year"
+              placeholder=""
+              value={formData.year}
+              onChange={(date) => setFormData({ ...formData, year: date })}
+            />
+          </Form.Item>
+
+          <Form.Item label="Engine">
+            <Select
+              value={formData.engine}
+              onChange={(value) => setFormData({ ...formData, engine: value })}
+              options={[
+                {
+                  value: "Gasoline/gas",
+                  label: "Gasoline/gas",
+                },
+                {
+                  value: "Gasoline",
+                  label: "Gasoline",
+                },
+                {
+                  value: "Diesel",
+                  label: "Diesel",
+                },
+                {
+                  value: "Hybrid",
+                  label: "Hybrid",
+                },
+                {
+                  value: "Electric",
+                  label: "Electric",
+                },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item label="Gearbox">
+            <Select
+              value={formData.gearbox}
+              onChange={(value) => setFormData({ ...formData, gearbox: value })}
+              options={[
+                {
+                  value: "Manual",
+                  label: "Manual",
+                },
+                {
+                  value: "Automatic",
+                  label: "Automatic",
+                },
+              ]}
+            />
+          </Form.Item>
+          </div>
+
+          <div>
           <Form.Item label="Number plate">
             <Input
               maxLength="8"
@@ -282,15 +318,7 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item label="Brand">
-            <Input
-              maxLength={20}
-              value={formData.brand}
-              onChange={(e) =>
-                setFormData({ ...formData, brand: e.target.value })
-              }
-            />
-          </Form.Item>
+
           <Form.Item label="Model">
             <Input
               maxLength={20}
@@ -300,17 +328,10 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item label="Year">
-            <DatePicker
-              picker="year"
-              placeholder=""
-              value={formData.year}
-              onChange={(date) => setFormData({ ...formData, year: date })}
-            />
-          </Form.Item>
+
           <Form.Item label="Color">
             <Select
-              listHeight={450}
+              listHeight={240}
               value={formData.color}
               onChange={(value) => setFormData({ ...formData, color: value })}
               options={[
@@ -369,39 +390,12 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
-          <Form.Item label="Engine">
-            <Select
-              value={formData.engine}
-              onChange={(value) => setFormData({ ...formData, engine: value })}
-              options={[
-                {
-                  value: "Gasoline/gas",
-                  label: "Gasoline/gas",
-                },
-                {
-                  value: "Gasoline",
-                  label: "Gasoline",
-                },
-                {
-                  value: "Diesel",
-                  label: "Diesel",
-                },
-                {
-                  value: "Hybrid",
-                  label: "Hybrid",
-                },
-                {
-                  value: "Electric",
-                  label: "Electric",
-                },
-              ]}
-            />
-          </Form.Item>
+
           <Form.Item label="Engine capacity (L)">
             <InputNumber
               type="decimal"
+              style={{width: '100%'}}
               controls={false}
-              style={{ width: "150px" }}
               min={0.1}
               max={10}
               value={formData.enginecapacity}
@@ -410,22 +404,8 @@ function CarRegistry() {
               }
             />
           </Form.Item>
-          <Form.Item label="Gearbox">
-            <Select
-              value={formData.gearbox}
-              onChange={(value) => setFormData({ ...formData, gearbox: value })}
-              options={[
-                {
-                  value: "Manual",
-                  label: "Manual",
-                },
-                {
-                  value: "Automatic",
-                  label: "Automatic",
-                },
-              ]}
-            />
-          </Form.Item>
+          
+
           <Form.Item label="Body type">
             <Select
               value={formData.bodytype}
@@ -468,6 +448,7 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
+          </div>
         </Form>
       </Modal>
       
@@ -486,60 +467,93 @@ function CarRegistry() {
         onOk={() => setIsModalOpen2(false)}
         onCancel={() => setIsModalOpen2(false)}
       >
-        <Form className="form">
+        <Form className="form" layout="vertical">
+          <div>
           <Form.Item label="VIN">
             <Input
               maxLength="17"
               minLength="5"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-              value={formData.VIN}
-              onChange={(e) =>
-                setFormData({ ...formData, VIN: e.target.value })
-              }
             />
           </Form.Item>
+
+          <Form.Item label="Brand">
+            <Input
+              maxLength={20}
+            />
+          </Form.Item>
+
+          <Form.Item label="Year">
+            <DatePicker
+              style={{width: '100%'}}
+              picker="year"
+              placeholder=""
+            />
+          </Form.Item>
+
+
+
+          <Form.Item label="Engine">
+            <Select
+              options={[
+                {
+                  value: "Gasoline/gas",
+                  label: "Gasoline/gas",
+                },
+                {
+                  value: "Gasoline",
+                  label: "Gasoline",
+                },
+                {
+                  value: "Diesel",
+                  label: "Diesel",
+                },
+                {
+                  value: "Hybrid",
+                  label: "Hybrid",
+                },
+                {
+                  value: "Electric",
+                  label: "Electric",
+                },
+              ]}
+            />
+          </Form.Item>
+
+          <Form.Item label="Gearbox">
+            <Select
+              options={[
+                {
+                  value: "Manual",
+                  label: "Manual",
+                },
+                {
+                  value: "Automatic",
+                  label: "Automatic",
+                },
+              ]}
+            />
+          </Form.Item>
+
+          </div>
+
+          <div>
           <Form.Item label="Number plate">
             <Input
               maxLength="8"
               onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-              value={formData.numberplate}
-              onChange={(e) =>
-                setFormData({ ...formData, numberplate: e.target.value })
-              }
             />
           </Form.Item>
-          <Form.Item label="Brand">
-            <Input
-              maxLength={20}
-              value={formData.brand}
-              onChange={(e) =>
-                setFormData({ ...formData, brand: e.target.value })
-              }
-            />
-          </Form.Item>
+          
           <Form.Item label="Model">
             <Input
               maxLength={20}
-              value={formData.model}
-              onChange={(e) =>
-                setFormData({ ...formData, model: e.target.value })
-              }
             />
           </Form.Item>
-          <Form.Item label="Year">
-            <DatePicker
-              picker="year"
-              placeholder=""
-              value={formData.year}
-              onChange={(date) => setFormData({ ...formData, year: date })}
-            />
-          </Form.Item>
+
           <Form.Item label="Color">
             <Select
-              listHeight={420}
-              
-              value={formData.color}
-              onChange={(value) => setFormData({ ...formData, color: value })}
+              listHeight={240}
               options={[
                 {
                   value: "White",
@@ -596,68 +610,17 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
-          <Form.Item label="Engine">
-            <Select
-              value={formData.engine}
-              onChange={(value) => setFormData({ ...formData, engine: value })}
-              options={[
-                {
-                  value: "Gasoline/gas",
-                  label: "Gasoline/gas",
-                },
-                {
-                  value: "Gasoline",
-                  label: "Gasoline",
-                },
-                {
-                  value: "Diesel",
-                  label: "Diesel",
-                },
-                {
-                  value: "Hybrid",
-                  label: "Hybrid",
-                },
-                {
-                  value: "Electric",
-                  label: "Electric",
-                },
-              ]}
-            />
-          </Form.Item>
           <Form.Item label="Engine capacity (L)">
             <InputNumber
               type="number"
+              style={{width: '100%'}}
               controls={false}
               min={0.1}
               max={10}
-              value={formData.enginecapacity}
-              onChange={(value) =>
-                setFormData({ ...formData, enginecapacity: value })
-              }
-            />
-          </Form.Item>
-          <Form.Item label="Gearbox">
-            <Select
-              value={formData.gearbox}
-              onChange={(value) => setFormData({ ...formData, gearbox: value })}
-              options={[
-                {
-                  value: "Manual",
-                  label: "Manual",
-                },
-                {
-                  value: "Automatic",
-                  label: "Automatic",
-                },
-              ]}
             />
           </Form.Item>
           <Form.Item label="Body type">
             <Select
-              value={formData.bodytype}
-              onChange={(value) =>
-                setFormData({ ...formData, bodytype: value })
-              }
               options={[
                 {
                   value: "Off-road",
@@ -694,12 +657,14 @@ function CarRegistry() {
               ]}
             />
           </Form.Item>
+
+          </div>
         </Form>
       </Modal>
 
       <div
         className="ag-theme-balham"
-        style={{ height: "80vh", width: "100%" }}
+        style={{ height: "80vh", width: "100%"}}
       >
         <AgGridReact
           ref={gridRef}

@@ -1,61 +1,53 @@
 import React from "react";
-import './style.css';
-import { Link } from 'react-router-dom'
-import { BarChartOutlined , ShoppingFilled, CarFilled, InfoCircleFilled } from "@ant-design/icons";
-import { Layout, Button } from 'antd';
-const { Header } = Layout;
+import "./style.css";
+import { Link } from "react-router-dom";
+import { Layout, Button, Card} from "antd";
 
-function App() {
+import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts/core';
+
+import Navbar from './Navbar.js';
+
+const options = {
+  grid: { top: 8, right: 8, bottom: 24, left: 36 },
+  xAxis: {
+    type: 'category',
+    data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+  },
+  yAxis: {
+    type: 'value',
+  },
+  series: [
+    {
+      data: [500, 1000, 1500, 2000, 2000, 2000, 100],
+      type: 'line',
+      smooth: true,
+    },
+    {
+      data: [100, 200, 300, 400, 500],
+      type: 'bar',
+      smooth: true,
+    },
+    {
+      data: [100, 200, 500, 400, 500],
+      type: 'line',
+      smooth: true,
+    },
+  ],
+  tooltip: {
+    trigger: 'axis',
+  },
+};
+
+function ECharts() {
   return (
     <>
-        <Layout>
-        <Header className="dashboardSider">
-          <Link to="/">
-            <Button
-              icon={<InfoCircleFilled />}
-              className="dashboardBtn"
-              size={"large"}
-              type="primary"
-            >
-              Dashboard
-            </Button>
-          </Link>
-
-          <div style={{ display: "flex", gap: "50px" }}>
-            <Link to="/carregistry">
-              <Button
-                icon={<CarFilled />}
-                type="primary"
-                className="dashboardBtn"
-              >
-                Car Registry
-              </Button>
-            </Link>
-
-            <Link to="/salesregistry">
-              <Button
-                icon={<ShoppingFilled />}
-                className="dashboardBtn"
-                type="primary"
-              >
-                Sale Registry
-              </Button>
-            </Link>
-
-            <Link to="/echarts">
-              <Button
-                icon={<BarChartOutlined />}
-                className="dashboardBtn activeLink"
-                type="primary"
-              >
-                Diagrams
-              </Button>
-            </Link>
-          </div>
-        </Header>
-      </Layout>
+      <Navbar/>
+      <Card className="diagramCards">
+      <ReactECharts option={options} notMerge={true} />
+      </Card>
     </>
   );
 }
 
-export default App;
+export default ECharts;

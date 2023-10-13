@@ -16,7 +16,7 @@ import {
   Modal,
   Timeline,
   Layout,
-  Popconfirm
+  Popconfirm,
 } from "antd";
 import {
   SettingOutlined,
@@ -26,30 +26,12 @@ import {
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 
-//nestrada RichSelect
-import { ModuleRegistry } from "@ag-grid-community/core";
-import { ClientSideRowModelModule } from "@ag-grid-community/client-side-row-model";
-import { RichSelectModule } from "@ag-grid-enterprise/rich-select";
 
 import moment from "moment";
 import "../style.css";
 
 import { Link } from "react-router-dom";
-
-import {
-  BarChartOutlined,
-  ShoppingFilled,
-  CarFilled,
-  InfoCircleFilled,
-} from "@ant-design/icons";
-
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faReact } from "@fortawesome/free-brands-svg-icons";
-
-const { Header } = Layout;
-
-// nestrada
-ModuleRegistry.registerModules([ClientSideRowModelModule, RichSelectModule]);
+import Navbar from '../Navbar.js';
 
 function CarSalesRegistry() {
   const [salesFormValid, setsalesFormValid] = useState(false);
@@ -198,64 +180,32 @@ function CarSalesRegistry() {
   };
 
   const [deleteDisabled, setDeleteDisabled] = useState(true);
-  const [editDisabled, setEditDisabled] = useState(false);
-  
+  const [editDisabled, setEditDisabled] = useState(true);
+
   const onSelectionChanged = useCallback(() => {
     const selectedRows = gridRef.current.api.getSelectedRows();
-    if(selectedRows.length >= 1){
-      setDeleteDisabled(false)
-    }else{
-      setDeleteDisabled(true)
-    }
 
-    if(selectedRows.length > 1)
-    setEditDisabled(true)
-    
-    if(selectedRows.length === 1)
-    setEditDisabled(false)
+    if (selectedRows.length >= 1) setDeleteDisabled(false);
+
+    if (selectedRows.length > 1) setEditDisabled(true);
+
+    if (selectedRows.length < 1) setEditDisabled(true);
+    setDeleteDisabled(true);
+
+    if (selectedRows.length === 1) setEditDisabled(false);
+    setDeleteDisabled(false);
+
+    if (selectedRows.length === 0) setDeleteDisabled(true);
   }, []);
+
+  const editFormSubmit = () =>{
+    console.log('test')
+    setIsModalOpen3(false);
+  }
 
   return (
     <>
-      <Layout>
-        <Header className="dashboardSider">
-          <Link to="/">
-          <FontAwesomeIcon className="dashboardBtn App-logo" size="2x" icon={faReact}/>
-          </Link>
-
-          <div style={{ display: "flex", gap: "50px" }}>
-            <Link to="/carregistry">
-              <Button
-                icon={<CarFilled />}
-                type="primary"
-                className="dashboardBtn"
-              >
-                Car Registry
-              </Button>
-            </Link>
-
-            <Link to="/salesregistry">
-              <Button
-                icon={<ShoppingFilled />}
-                className="dashboardBtn activeLink"
-                type="primary"
-              >
-                Sale Registry
-              </Button>
-            </Link>
-
-            <Link to="/echarts">
-              <Button
-                icon={<BarChartOutlined />}
-                className="dashboardBtn"
-                type="primary"
-              >
-                Diagrams
-              </Button>
-            </Link>
-          </div>
-        </Header>
-      </Layout>
+      <Navbar/>
 
       <div>
         <Button
@@ -306,33 +256,35 @@ function CarSalesRegistry() {
           onCancel={() => setIsModalOpen2(false)}
         >
           <div style={{ display: "flex", gap: "50px" }}>
-            <Form className="form">
-              <Form.Item label="Vehicle">
-                <Select
-                  showSearch
-                  optionFilterProp="children"
-                  filterOption={filterOption}
-                  value={salesFormData.vehicle}
-                  onChange={(value) =>
-                    setsalesFormData({ ...salesFormData, vehicle: value })
-                  }
-                  options={numberplates.map((numberplate) => ({
-                    value: numberplate,
-                    label: numberplate,
-                  }))}
-                />
-              </Form.Item>
-              <Form.Item label="Appraiser">
-                <Input
-                  value={salesFormData.appraiser}
-                  onChange={(e) =>
-                    setsalesFormData({
-                      ...salesFormData,
-                      appraiser: e.target.value,
-                    })
-                  }
-                />
-              </Form.Item>
+            <Form className="form" layout="vertical">
+              <div>
+                <Form.Item label="Vehicle">
+                  <Select
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={filterOption}
+                    value={salesFormData.vehicle}
+                    onChange={(value) =>
+                      setsalesFormData({ ...salesFormData, vehicle: value })
+                    }
+                    options={numberplates.map((numberplate) => ({
+                      value: numberplate,
+                      label: numberplate,
+                    }))}
+                  />
+                </Form.Item>
+                <Form.Item label="Appraiser">
+                  <Input
+                    value={salesFormData.appraiser}
+                    onChange={(e) =>
+                      setsalesFormData({
+                        ...salesFormData,
+                        appraiser: e.target.value,
+                      })
+                    }
+                  />
+                </Form.Item>
+              </div>
             </Form>
 
             <Timeline
@@ -359,18 +311,23 @@ function CarSalesRegistry() {
           </div>
         </Modal>
 
-        <Button icon={<EditOutlined />} disabled={editDisabled} onClick={() => setIsModalOpen3(true)}>
+        <Button
+          icon={<EditOutlined />}
+          disabled={editDisabled}
+          onClick={() => setIsModalOpen3(true)}
+        >
           Edit
         </Button>
-        
 
         <Popconfirm
-          title="Cancel the sale"
+          title="Cancel sale"
           description="Are you sure you want to cancel car sale?"
           okText="Yes"
           cancelText="No"
         >
-          <Button danger disabled={deleteDisabled}>Cancel Sale</Button>
+          <Button danger disabled={deleteDisabled}>
+            Cancel Sale
+          </Button>
         </Popconfirm>
 
         <Modal
@@ -378,134 +335,147 @@ function CarSalesRegistry() {
           maskClosable={false}
           title="Edit Record"
           open={isModalOpen3}
-          okText={'Save'}
-          cancelText={'Quit'}
+          okText={"Save"}
+          cancelText={"Quit"}
           onOk={() => setIsModalOpen3(false)}
           onCancel={() => setIsModalOpen3(false)}
           footer={(_, { OkBtn, CancelBtn }) => (
             <>
-              <Button danger>Cancel Sale</Button>
+              <Popconfirm
+                title="Cancel sale"
+                description="Are you sure you want to cancel car sale?"
+                okText="Yes"
+                cancelText="No"
+                onConfirm={editFormSubmit}
+              >
+                <Button danger>
+                  Cancel Sale
+                </Button>
+              </Popconfirm>
               <CancelBtn />
               <OkBtn />
             </>
           )}
-  
         >
-          <div style={{ display: "flex" }}>
-            <Form>
-              <Form.Item label="Vehicle">
-                <Select
-                  name="vehicleEdit"
-                  showSearch
-                  optionFilterProp="children"
-                  filterOption={filterOption}
-                  value={salesFormData.vehicle}
-                  onChange={(value) =>
-                    setsalesFormData({ ...salesFormData, vehicle: value })
-                  }
-                  options={numberplates.map((numberplate) => ({
-                    value: numberplate,
-                    label: numberplate,
-                  }))}
-                />
-              </Form.Item>
+          <div style={{ display: "flex", gap: "80px" }}>
+            <Form className="form" layout="vertical">
+              <div>
+                <Form.Item label="Vehicle">
+                  <Select
+                    name="vehicleEdit"
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={filterOption}
+                    value={salesFormData.vehicle}
+                    onChange={(value) =>
+                      setsalesFormData({ ...salesFormData, vehicle: value })
+                    }
+                    options={numberplates.map((numberplate) => ({
+                      value: numberplate,
+                      label: numberplate,
+                    }))}
+                  />
+                </Form.Item>
 
-              <Form.Item label="Status">
-                <Select
-                  value={selectedStatus}
-                  onChange={(value) => {
-                    setSelectedStatus(value);
-                    handleStatusChange(value);
-                    setsalesFormData({ ...salesFormData, salestatus: value });
-                  }}
-                >
-                  {availableStatuses.map((status) => (
-                    <Select.Option key={status} value={status}>
-                      {status}
-                    </Select.Option>
-                  ))}
-                </Select>
-              </Form.Item>
+                <Form.Item label="Status">
+                  <Select
+                    value={selectedStatus}
+                    onChange={(value) => {
+                      setSelectedStatus(value);
+                      handleStatusChange(value);
+                      setsalesFormData({ ...salesFormData, salestatus: value });
+                    }}
+                  >
+                    {availableStatuses.map((status) => (
+                      <Select.Option key={status} value={status}>
+                        {status}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
 
-              <Form.Item label="Appraiser">
-                <Input
-                  value={salesFormData.appraiser}
-                  onChange={(e) =>
-                    setsalesFormData({
-                      ...salesFormData,
-                      appraiser: e.target.value,
-                    })
-                  }
-                />
-              </Form.Item>
+                <Form.Item label="Appraiser">
+                  <Input
+                    value={salesFormData.appraiser}
+                    onChange={(e) =>
+                      setsalesFormData({
+                        ...salesFormData,
+                        appraiser: e.target.value,
+                      })
+                    }
+                  />
+                </Form.Item>
 
-              <Form.Item label="Neto ">
-                <Input
-                  disabled
-                  addonBefore="€"
-                  type="number"
-                  value={salesFormData.neto}
-                  onChange={(e) =>
-                    setsalesFormData({
-                      ...salesFormData,
-                      netoprice: e.target.value,
-                    })
-                  }
-                />
-              </Form.Item>
+                <Form.Item label="Neto ">
+                  <Input
+                    disabled
+                    addonBefore="€"
+                    type="number"
+                    value={salesFormData.neto}
+                    onChange={(e) =>
+                      setsalesFormData({
+                        ...salesFormData,
+                        netoprice: e.target.value,
+                      })
+                    }
+                  />
+                </Form.Item>
 
-              <Form.Item label="VAT Rate ">
-                <Input
-                  disabled
-                  addonAfter="%"
-                  type="number"
-                  value={salesFormData.neto}
-                  onChange={(e) =>
-                    setsalesFormData({
-                      ...salesFormData,
-                      netoprice: e.target.value,
-                    })
-                  }
-                />
-              </Form.Item>
+                <Form.Item label="VAT Rate ">
+                  <Input
+                    disabled
+                    addonAfter="%"
+                    type="number"
+                    value={salesFormData.neto}
+                    onChange={(e) =>
+                      setsalesFormData({
+                        ...salesFormData,
+                        netoprice: e.target.value,
+                      })
+                    }
+                  />
+                </Form.Item>
 
-              <Form.Item label="Full price">
-                <Input
-                  disabled
-                  addonBefore="€"
-                  type="number"
-                  value={salesFormData.neto}
-                  onChange={(e) =>
-                    setsalesFormData({
-                      ...salesFormData,
-                      netoprice: e.target.value,
-                    })
-                  }
-                />
-              </Form.Item>
+                <Form.Item label="Full price">
+                  <Input
+                    disabled
+                    addonBefore="€"
+                    type="number"
+                    value={salesFormData.neto}
+                    onChange={(e) =>
+                      setsalesFormData({
+                        ...salesFormData,
+                        netoprice: e.target.value,
+                      })
+                    }
+                  />
+                </Form.Item>
+              </div>
             </Form>
 
-            <Timeline
-              items={[
-                { children: "New request received", color: "green" },
-                { children: "Evaluation has begun", color: "gray" },
-                { children: "Received a rating", color: "gray" },
-                { children: "Car sale has begun", color: "gray" },
-                { children: "Car sale has completed", color: "gray" },
-                {
-                  children: "Buyer has received a sales contract",
-                  color: "gray",
-                },
-                {
-                  children: "Sold - Contract received from buyer",
-                  color: "gray",
-                },
-                {
-                  children: "Vehicle has been delivered to buyer",
-                  color: "gray",
-                },
-              ]}
-            ></Timeline>
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <Timeline
+                items={[
+                  { children: "New request received", color: "green" },
+                  { children: "Evaluation has begun", color: "gray" },
+                  { children: "Received a rating", color: "gray" },
+                  { children: "Car sale has begun", color: "gray" },
+                  { children: "Car sale has completed", color: "gray" },
+                  {
+                    children: "Buyer has received a sales contract",
+                    color: "gray",
+                  },
+                  {
+                    children: "Sold - Contract received from buyer",
+                    color: "gray",
+                  },
+                  {
+                    children: "Vehicle has been delivered to buyer",
+                    color: "gray",
+                  },
+                ]}
+              ></Timeline>
+            </div>
           </div>
         </Modal>
 

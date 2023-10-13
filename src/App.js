@@ -17,9 +17,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="salesregistry" element={<CarSalesRegistry />} />
           <Route path="carregistry" element={<CarRegistry />} />
-
-
-          <Route path="echarts" element={<ECharts />} />
+          <Route path="diagrams" element={<ECharts />} />
         </Routes>
       </BrowserRouter>
     </>
