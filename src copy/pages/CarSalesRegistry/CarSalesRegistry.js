@@ -37,10 +37,9 @@ dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
 
 function CarSalesRegistry() {
-  const [editForm] = Form.useForm();
-  const [addForm] = Form.useForm();
-
+  const [form] = Form.useForm();
   const [editData, setEditData] = useState(null);
+
   const [salesFormData, setsalesFormData] = useState();
   const [salesRowData, setsalesRowData] = useState(() => {
     const savedsalesRowData = localStorage.getItem("salesRowData");
@@ -60,7 +59,7 @@ function CarSalesRegistry() {
 
   const testingColors = {
     'status-pending': params => params.value === 'New request received' || params.value === 'Evaluation has begun' || params.value === 'Received a rating' || 
-    params.value === 'Car sale has begun' || params.value === 'Car sale has completed' || params.value === 'Buyer has received a sales contract', 
+    params.value === 'Car sale has begun' || params.value === 'Car sale completed' || params.value === 'Buyer has received a sales contract', 
     'status-sold-sale': params => params.value === 'Sold - Contract received from buyer' || params.value === 'Vehicle has been delivered to buyer',
     'status-canceled': params => params.value === 'Canceled',
   }
@@ -80,19 +79,6 @@ function CarSalesRegistry() {
   // "Canceled",
 
 
-  const currencyFormatter = (params) => {
-    if (params.value === null || params.value === undefined) {
-      return null;
-    } else {
-      return `€ ${formatNumber(params.value)}`;
-    };
-  }
-  
-  const formatNumber = (number) => {
-    return Math.floor(number)
-      .toString()
-      .replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
-  };
 
   const [columnDefs] = useState([
     {
@@ -120,23 +106,7 @@ function CarSalesRegistry() {
       sortable: true,
       filter: "agTextColumnFilter",
     },
-    {
-      field: "netoprice",
-      headerName: "Neto price",
-      sortable: true,
-      // valueFormatter: (params) => {
-      //   // if (
-      //   //   params.value === null ||
-      //   //   params.value === undefined ||
-      //   //   params.value === ""
-      //   // ) {
-      //   //   return null;
-      //   // } else {
-      //   //   return `€ ${params.value}`;
-      //   // }
-      // },
-      valueFormatter: currencyFormatter,
-    },
+    { field: "netoprice", headerName: "Neto price", sortable: true },
     {
       field: "vatrate",
       headerName: "VAT rate",
@@ -148,7 +118,7 @@ function CarSalesRegistry() {
         return `${params.value || defaultVATRate}%`;
       },
     },
-    { field: "fullprice", headerName: "Full price", sortable: true, valueFormatter: currencyFormatter },
+    { field: "fullprice", headerName: "Full price", sortable: true },
     {
       field: "date",
       headerName: "Date",
@@ -174,36 +144,35 @@ function CarSalesRegistry() {
   const [isModalOpen3, setIsModalOpen3] = useState(false);
 
   const handleFormSubmit = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
     const dateValue = salesFormData.date
       ? salesFormData.date.format("YYYY-MM-DD")
       : "";
     const newsalesData = { ...salesFormData, date: dateValue, vatrate: userDefinedVATRate, salestatus: 'New request received' };
 
     setsalesRowData([newsalesData, ...salesRowData]);
+    // setFilteredSalesRowData((prevData) => [newSalesData, ...prevData]);
+    // setIsModalOpen2(false);
+
     setFilteredSalesRowData((prevData) => [newsalesData, ...prevData]);
-
-
-    const selectedVehicle = carRowData.find(
-      (vehicle) => vehicle.numberplate === salesFormData.vehicle
-    );
-  
-    if (selectedVehicle) {
-      // Update the status of the selected vehicle to 'Reserved'
-      selectedVehicle.status = 'Reserved';
-  
-      // Update the car registry data in localStorage
-      localStorage.setItem("rowData", JSON.stringify(carRowData));
-    }
 
     messageApi.open({
       type: 'success',
       content: 'New sale record has been successfully added'
     });
 
-    addForm.resetFields();
+    form.resetFields();
 
     setIsModalOpen2(false);
+
+    // const dateValue = salesFormData.date
+    //   ? salesFormData.date.format("YYYY-MM-DD")
+    //   : "";
+    // const newSalesData = { ...salesFormData, date: dateValue };
+    // const updatedSalesData = [newSalesData, ...salesRowData];
+
+    // setsalesRowData(updatedSalesData);
+    // setFilteredSalesRowData(updatedSalesData); // Update filtered data as well
+    // setIsModalOpen2(false);
   };
 
   const allStatuses = [
@@ -219,8 +188,8 @@ function CarSalesRegistry() {
 
   const [selectedStatus, setSelectedStatus] = useState(allStatuses[0]);
 
-  const updateAvailableStatuses = (status) => {
-    const selectedIndex = allStatuses.indexOf(status);
+  const updateAvailableStatuses = (selected) => {
+    const selectedIndex = allStatuses.indexOf(selected);
 
     if (selectedIndex === -1) {
       return allStatuses;
@@ -232,46 +201,25 @@ function CarSalesRegistry() {
       allStatuses[selectedIndex + 1],
     ].filter((status) => status !== undefined);
 
+    if (!availableStatuses.includes(allStatuses[8])) {
+      availableStatuses.push(allStatuses[8]);
+    }
+
     return availableStatuses;
   };
 
-  // const [availableStatuses, setAvailableStatuses] = useState(
-  //   updateAvailableStatuses(selectedStatus)
-  // );
-  const [availableStatuses, setAvailableStatuses] = useState(updateAvailableStatuses('New request received'));
+  const [availableStatuses, setAvailableStatuses] = useState(
+    updateAvailableStatuses(selectedStatus)
+  );
 
-
-  const updateVehicleStatus = (numberplate, newStatus) => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
-
-    // Find the vehicle with the matching numberplate
-    const updatedCarRowData = carRowData.map((vehicle) => {
-      if (vehicle.numberplate === numberplate) {
-        return { ...vehicle, status: newStatus };
-      }
-      return vehicle;
-    });
-
-    // Update the car registry data in localStorage
-    localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
-  };
-  
   const handleStatusChange = (value) => {
-    if (availableStatuses.includes(value)) {
-      setCurrentEditStatus(value);
-      setEditData({ ...editData, salestatus: value });
-
-      if (value === "Sold - Contract received from buyer" || value === "Vehicle has been delivered to buyer") {
-        // Update the vehicle status to "Sold"
-        const selectedVehicle = selectedRowForEdit.vehicle;
-        updateVehicleStatus(selectedVehicle, "Sold");
-      }
-    }
+    setSelectedStatus(value);
+    setAvailableStatuses(updateAvailableStatuses(value));
   };
 
   const [filteredSalesRowData, setFilteredSalesRowData] = useState(salesRowData);
 
-  //RangePicker for PDF (not working)
+  //RangePicker for PDF
   const [downloadDisabled, setDownloadDisabled] = useState(true);
 
   const [startDate, setStartDate] = useState("");
@@ -336,84 +284,38 @@ function CarSalesRegistry() {
         }
         break;
       default:
-        //NEEDS REWORKING!!!!!!!!
-        // const multiSelectedRow = gridRef.current.api.getSelectedRows();
-        // if ((multiSelectedRow.salestatus === 'Canceled') || (multiSelectedRow.salestatus === 'Vehicle has been delivered to buyer')) {
-        //   setEditDisabled(true);
-        //   setDeleteDisabled(true);
-        // } else {
-        //   setEditDisabled(false);
-        //   setDeleteDisabled(false);
-        // }
-        // // setEditDisabled(true);
-        // // setDeleteDisabled(false);
-        // break;
+        setEditDisabled(true);
+        setDeleteDisabled(false);
+        break;
     }
   }, []);
 
-  const getAvailableNumberplates = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
-    const availableNumberplates = carRowData
-      .filter(
-        (row) =>
-          row.status === "Available"
-      )
-      .map((row) => row.numberplate);
-
-    return availableNumberplates;
-  };
-
   const cancelSaleBtn = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
-    const selectedRows = gridRef.current.api.getSelectedRows();
-    if (selectedRows.length > 0) {
-      const updatedCarRowData = [...carRowData];
+    // const selectedRows = gridRef.current.api.getSelectedRows();
 
-      selectedRows.forEach((row) => {
-        const selectedVehicle = updatedCarRowData.find(
-          (vehicle) => vehicle.numberplate === row.vehicle
-        );
+    // if (selectedRows.length > 0) {
+    //   const updatedData = filteredSalesRowData.map((row) => {
+    //     if (selectedRows.includes(row)) {
+    //       return {
+    //         ...row,
+    //         salestatus: "Canceled",
+    //       };
+    //     }
+    //     return row;
+    //   });
 
-        if (selectedVehicle) {
-          selectedVehicle.status = "Available";
-        }
-      });
+    //   setFilteredSalesRowData(updatedData);
+    //   updateLocalStorageData(updatedData);
 
-      localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
-      const updatedData = filteredSalesRowData.map((row) => {
-        if (selectedRows.includes(row)) {
-          return {
-            ...row,
-            salestatus: "Canceled",
-          };
-        }
-        return row;
-      });
-
-      setFilteredSalesRowData(updatedData);
-      updateLocalStorageData(updatedData);
-
-      messageApi.open({
-        type: "warning",
-        content: "Sale has been canceled!",
-      });
-    }
+    //   messageApi.open({
+    //     type: "warning",
+    //     content: "Sale has been canceled!",
+    //   });
+    // }
   };
 
   const cancelSaleEditBtn = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
     if (selectedRowForEdit) {
-      const updatedCarRowData = [...carRowData];
-  
-      const selectedVehicle = updatedCarRowData.find(
-        (vehicle) => vehicle.numberplate === selectedRowForEdit.vehicle
-      );
-  
-      if (selectedVehicle) {
-        selectedVehicle.status = 'Available';
-      }
-  
-      localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
       const updatedSale = {
         ...selectedRowForEdit,
         salestatus: 'Canceled',
@@ -425,139 +327,63 @@ function CarSalesRegistry() {
   
       setFilteredSalesRowData(updatedData);
       updateLocalStorageData(updatedData);
-  
+
+    
       messageApi.open({
         type: "success",
         content: "Sale has been canceled!",
       });
-  
-      setIsModalOpen3(false);
+
+      setIsModalOpen3(false)
     }
+    //backend for canceling a sale through modal
   };
 
-  const onRowDoubleClicked = (event) => {
-    const selectedRows = gridRef.current.api.getSelectedRows();
-    if (
-      event.data.salestatus !== "Canceled" &&
-      event.data.salestatus !== "Vehicle has been delivered to buyer"
-    ) {
-      setIsModalOpen3(true);
-      setSelectedRowForEdit(event.data);
+  const onRowDoubleClicked = () => {
+    setIsModalOpen3(true)
+  }
 
-      if (selectedRows.length === 1) {
-        setEditData(selectedRows[0]);
-        setIsModalOpen3(true);
-        //handleEdit so that neto is disabled when double-clicking
-        handleEdit();
-      }
-    }
-  };
-
-  const onFormFinish = () => {
-    addForm
+  const onFinish = () => {
+    form
       .validateFields()
       .then(() => {
         handleFormSubmit();
       })
       .catch((error) => {
-        console.error("Validation form error:", error);
+        console.error("Validation error:", error);
       });
   };
 
-  const onEditFinish = () => {
-    editForm
-      .validateFields()
-      .then(() => {
-        handleEditSubmit();
-      })
-      .catch((error) => {
-        console.error("Validation edit error:", error);
-      });
-  };
   
   const handleEditSubmit = () => {
-    // const selectedRows = gridRef.current.api.getSelectedRows();
-    // const selectedSale = selectedRows[0];
-
-    // if (selectedRowForEdit && editData) {
-    //   let updatedFullPrice = editData.fullprice;
-
-    //   if (editData.salestatus === 'Car sale has completed') {
-
-    //     updatedFullPrice = editData.netoprice * ( 100 + editData.vatrate ) / 100;
-    //   }
-
-    //   const updatedData = salesRowData.map((row) =>
-    //     row === selectedRowForEdit ? { ...row, ...editData, fullprice: updatedFullPrice } : row
-    //   );
-
-    //   setsalesRowData(updatedData);
-    //   setFilteredSalesRowData(updatedData);
-
-    //   setIsModalOpen3(false);
-    // }
-    const selectedRows = gridRef.current.api.getSelectedRows();
-    const selectedSale = selectedRows[0];
-  
     if (selectedRowForEdit && editData) {
-      let updatedFullPrice = editData.fullprice;
-  
-      // Check if the status is "Buyer has received a sales contract"
-      if (editData.salestatus === 'Buyer has received a sales contract') {
-        // Set the date to today's date with the format "YYYY-MM-DD"
-        const today = dayjs().format("YYYY-MM-DD");
-        editData.date = today;
-      }
-  
-      if (editData.salestatus === 'Car sale has completed') {
-        updatedFullPrice = editData.netoprice * (100 + editData.vatrate) / 100;
-      }
-  
       const updatedData = salesRowData.map((row) =>
-        row === selectedRowForEdit ? { ...row, ...editData, fullprice: updatedFullPrice } : row
+        row === selectedRowForEdit ? { ...row, ...editData } : row
       );
-  
+
       setsalesRowData(updatedData);
       setFilteredSalesRowData(updatedData);
-  
+
       setIsModalOpen3(false);
     }
   };
-  
-  const [currentEditStatus, setCurrentEditStatus] = useState('New request received');
-  const [isVehicleSelectionDisabled, setIsVehicleSelectionDisabled] = useState(false);
-  const [isNetoInputDisabled, setIsNetoInputDisabled] = useState(false);
-
 
   const handleEdit = () => {
     const selectedRows = gridRef.current.api.getSelectedRows();
     if (selectedRows.length === 1) {
-      const selectedSale = selectedRows[0];
       setEditData(selectedRows[0]);
-      setCurrentEditStatus(selectedRows[0].salestatus); // Set the current edit status
-
-      if (selectedSale.salestatus !== 'New request received') {
-        setIsVehicleSelectionDisabled(true);
-      } else {
-        setIsVehicleSelectionDisabled(false);
-      }
-
-      if(selectedSale.salestatus === 'Received a rating'){
-        setIsNetoInputDisabled(false)
-      } else {
-        setIsNetoInputDisabled(true);
-      }
-
-
-      setAvailableStatuses(updateAvailableStatuses(selectedRows[0].salestatus));
       setIsModalOpen3(true);
     }
   };
 
   const handleCloseModal = () => {
-    addForm.resetFields();
-    editForm.resetFields();
+    form.resetFields();
     setIsModalOpen2(false);
+  };
+
+  const getAvailableNumberplates = () => {
+    const usedNumberplates = salesRowData.map((row) => row.vehicle);
+    return numberplates.filter((numberplate) => !usedNumberplates.includes(numberplate));
   };
 
   return (
@@ -611,12 +437,12 @@ function CarSalesRegistry() {
           keyboard={false}
           maskClosable={false}
           open={isModalOpen2}
-          onOk={onFormFinish}
+          onOk={onFinish}
           okText="Add"
           onCancel={handleCloseModal}
         >
           <div style={{ display: "flex", gap: "130px" }}>
-            <Form form={addForm} className="form" layout="vertical">
+            <Form form={form} className="form" layout="vertical">
               <div style={{ width: 210 }}>
                 <Form.Item
                   label="Vehicle"
@@ -715,7 +541,7 @@ function CarSalesRegistry() {
           open={isModalOpen3}
           okText={"Save"}
           cancelText={"Quit"}
-          onOk={onEditFinish}
+          onOk={handleEditSubmit}
           onCancel={() => setIsModalOpen3(false)}
           footer={(_, { OkBtn, CancelBtn }) => (
             <>
@@ -736,7 +562,7 @@ function CarSalesRegistry() {
           )}
         >
           <div style={{ display: "flex", gap: "130px" }}>
-            <Form form={editForm} className="form" layout="vertical">
+            <Form className="form" layout="vertical">
               <div style={{ width: 280 }}>
                 <Form.Item label="Vehicle">
                   <Select
@@ -751,14 +577,17 @@ function CarSalesRegistry() {
                       value: numberplate,
                       label: numberplate,
                     }))}
-                    disabled={isVehicleSelectionDisabled}
                   />
                 </Form.Item>
 
                 <Form.Item label="Status">
                   <Select
-                    value={currentEditStatus} // Use the current edit status
-                    onChange={(value) => handleStatusChange(value)}
+                    value={editData ? editData.salestatus : ""}
+                    onChange={(value) => {
+                      setSelectedStatus(value);
+                      handleStatusChange(value);
+                      setEditData({ ...editData, salestatus: value });
+                    }}
                   >
                     {availableStatuses.map((status) => (
                       <Select.Option key={status} value={status}>
@@ -777,24 +606,15 @@ function CarSalesRegistry() {
                   />
                 </Form.Item>
 
-                <Form.Item
-                  label="Neto"
-                  name="neto"
-                  rules={[
-                    {
-                      required: !isNetoInputDisabled,
-                      message: "Please input neto!",
-                    },
-                  ]}
-                >
+                <Form.Item label="Neto ">
                   <Input
+                    disabled
                     addonBefore="€"
                     type="number"
                     value={editData ? editData.netoprice : ""}
                     onChange={(e) =>
                       setEditData({ ...editData, netoprice: e.target.value })
                     }
-                    disabled={isNetoInputDisabled}
                   />
                 </Form.Item>
 
@@ -812,7 +632,7 @@ function CarSalesRegistry() {
                   />
                 </Form.Item>
 
-                {/* <Form.Item label="Full price">
+                <Form.Item label="Full price">
                   <Input
                     disabled
                     addonBefore="€"
@@ -822,7 +642,7 @@ function CarSalesRegistry() {
                       setEditData({ ...editData, fullprice: e.target.value })
                     }
                   />
-                </Form.Item> */}
+                </Form.Item>
               </div>
             </Form>
 

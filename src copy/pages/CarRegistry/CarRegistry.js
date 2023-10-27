@@ -253,25 +253,17 @@ function CarRegistry() {
 
   const onSelectionChanged = useCallback(() => {
     const selectedRows = gridRef.current.api.getSelectedRows();
-    if (selectedRows.length >= 1) {
-      let isDeleteDisabled = false;
-      let isEditDisabled = false;
-      
-      //expertimental "Sold", maybe sold cars can be deleted from car registry (???)
-      for (const row of selectedRows) {
-        if (row.status === 'Reserved' || row.status === 'Sold') {
-          isDeleteDisabled = true;
-          isEditDisabled = true;
-          break;
-        }
-      }
-  
-      setDeleteDisabled(isDeleteDisabled);
-      setEditDisabled(isEditDisabled);
-    } else {
-      setDeleteDisabled(true);
-      setEditDisabled(true);
-    }
+    if (selectedRows.length >= 1) setDeleteDisabled(false);
+
+    if (selectedRows.length > 1) setEditDisabled(true);
+
+    if (selectedRows.length < 1) setEditDisabled(true);
+    setDeleteDisabled(true);
+
+    if (selectedRows.length === 1) setEditDisabled(false);
+    setDeleteDisabled(false);
+
+    if (selectedRows.length === 0) setDeleteDisabled(true);
   }, []);
 
   //datepicker year
@@ -626,10 +618,6 @@ function CarRegistry() {
                     label: "Minibus",
                   },
                   {
-                    value: "SUV",
-                    label: "SUV",
-                  },
-                  {
                     value: "Other",
                     label: "Other",
                   },
@@ -874,10 +862,6 @@ function CarRegistry() {
                   {
                     value: "Minibus",
                     label: "Minibus",
-                  },
-                  {
-                    value: "SUV",
-                    label: "SUV",
                   },
                   {
                     value: "Other",

@@ -256,23 +256,6 @@ const Dashboard = () => {
     //   const element = savedsalesRowData[i];
     // }
     // return test;
-    const todayDate = dayjs().format('YYYY-MM');
-    const salesInCurrentMonth = savedsalesRowData.filter((sale) => sale.date.startsWith(todayDate));
-    const totalFullPrice = salesInCurrentMonth.reduce((total, sale) => total + sale.fullprice, 0);
-  
-    const formattedProfit = formatNumber(totalFullPrice);
-  
-    return `€${formattedProfit}`;
-  };
-
-  const formatNumber = (number) => {
-    if (number < 1000) {
-      return number.toFixed(0);
-    } else if (number < 1000000) {
-      return (number / 1000).toFixed(1) + 'K';
-    } else {
-      return (number / 1000000).toFixed(1) + 'M';
-    }
   };
 
   return (
