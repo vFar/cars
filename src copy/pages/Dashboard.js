@@ -20,7 +20,21 @@ import { AgGridReact } from "ag-grid-react";
 import ReactECharts from "echarts-for-react";
 
 const { Title } = Typography;
+
 const Dashboard = () => {
+    const salesRowData = localStorage.getItem("salesRowData");
+    const rowData = localStorage.getItem("rowData");
+  
+    if (!salesRowData) {
+      const initialSalesRowData = [];
+      localStorage.setItem("salesRowData", JSON.stringify(initialSalesRowData));
+    }
+
+    if(!rowData){
+      const initialRowData = [];
+      localStorage.setItem("rowData", JSON.stringify(initialRowData));
+    }
+
   const savedsalesRowData = JSON.parse(localStorage.getItem("salesRowData"));
   const savedcarRowData = JSON.parse(localStorage.getItem("rowData"));
 
@@ -28,28 +42,79 @@ const Dashboard = () => {
     .filter((row) => row.status === "Available")
     .slice(0, 5);
 
-  const carssoldMonthly = (bool) => {
-    var newVar = [];
+  
+  const curYear = dayjs().year();
+  const lasYear = dayjs().year()-1;
 
-    for (let i = 0; i < savedsalesRowData.length; i++) {
-      const element = savedsalesRowData[i];
-      if (element.date !== "") {
-        newVar = [...newVar, element.date.slice(0, -3)];
+  const [barYear, setBarYear] = useState(null);
+
+  const carssoldMonthly = (year) => {
+    const counts = [];
+    var newVar = [];
+    var month = [];
+
+    if(year === dayjs().year()-1){
+      for (let i = 0; i < savedsalesRowData.length; i++) {
+        const element = savedsalesRowData[i];
+        if(element.salestatus === 'Sold - Contract received from buyer' || element.salestatus === 'Vehicle has been delivered to buyer'){
+          if(element.date.slice(0, -6) === JSON.stringify(dayjs().year()-1))
+            newVar = [...newVar, element.date.slice(0, -3)]
+        }
+      }
+        
+        newVar.forEach(function (x) {
+          counts[x] = (counts[x] || 0) + 1;
+        });
+
+    } else {
+      for (let i = 0; i < savedsalesRowData.length; i++) {
+        const element = savedsalesRowData[i];
+
+        if(element.salestatus === 'Sold - Contract received from buyer' || element.salestatus === 'Vehicle has been delivered to buyer'){
+          if(element.date.slice(0, -6) === JSON.stringify(dayjs().year())){
+            newVar = [...newVar, element.date.slice(0, -3)]
+          }
+        }
+      }
+      
+        
+        newVar.forEach(function (x) {
+          counts[x] = (counts[x] || 0) + 1;
+        });
+    }
+    var returnval;
+    var dates = Object.keys(counts)
+    for (let i = 0; i < 13; i++) {
+      if(dates[i]!=null){
+        console.log(dates[i].slice(5,8)+" === "+JSON.stringify(i))
+        if(JSON.stringify(dates[i]).slice(5, 8) == i){
+         console.log(i)
+        }
       }
     }
+    setBarYear([1,2,null,4,5,6])
+    console.log(counts)
+    // var newVar = [];
 
-    const counts = [];
-    newVar.forEach(function (x) {
-      counts[x] = (counts[x] || 0) + 1;
-    });
+    // for (let i = 0; i < savedsalesRowData.length; i++) {
+    //   const element = savedsalesRowData[i];
+    //   if (element.date !== "") {
+    //     newVar = [...newVar, element.date.slice(0, -3)];
+    //   }
+    // }
 
-    var returnval;
-    if (bool) {
-      returnval = Object.keys(counts);
-    } else {
-      returnval = Object.values(counts);
-    }
-    return returnval;
+    // const counts = [];
+    // newVar.forEach(function (x) {
+    //   counts[x] = (counts[x] || 0) + 1;
+    // });
+
+    // var returnval;
+    // if (bool) {
+    //   returnval = Object.keys(counts);
+    // } else {
+    //   returnval = Object.values(counts);
+    // }
+    // return returnval;
   };
 
   const mostfrequentBrand = () => {
@@ -104,7 +169,6 @@ const Dashboard = () => {
   const options1 = {
     grid: { top: 8, right: 8, bottom: 24, left: 36 },
     xAxis: {
-      type: "category",
       data: [
         "January",
         "February",
@@ -125,7 +189,7 @@ const Dashboard = () => {
     },
     series: [
       {
-        data: carssoldMonthly(false),
+        data: barYear,
         type: "bar",
         smooth: true,
         color: "rgb(64,150,255)",
@@ -256,6 +320,23 @@ const Dashboard = () => {
     //   const element = savedsalesRowData[i];
     // }
     // return test;
+    const todayDate = dayjs().format('YYYY-MM');
+    const salesInCurrentMonth = savedsalesRowData.filter((sale) => sale.date.startsWith(todayDate));
+    const totalFullPrice = salesInCurrentMonth.reduce((total, sale) => total + sale.fullprice, 0);
+  
+    const formattedProfit = formatNumber(totalFullPrice);
+  
+    return `€${formattedProfit}`;
+  };
+
+  const formatNumber = (number) => {
+    if (number < 1000) {
+      return number.toFixed(0);
+    } else if (number < 1000000) {
+      return (number / 1000).toFixed(1) + 'K';
+    } else {
+      return (number / 1000000).toFixed(1) + 'M';
+    }
   };
 
   return (
@@ -481,17 +562,18 @@ const Dashboard = () => {
                   buttonStyle="solid"
                   style={{ alignSelf: "flex-end", margin: "40px 0" }}
                   optionType="button"
+                  onChange={(e) => carssoldMonthly(e.target.value)}
                   options={[
                     {
-                      value: dayjs().year(),
-                      label: dayjs().year(),
+                      value: curYear,
+                      label: curYear,
                     },
                     {
-                      value: dayjs().year() - 1,
-                      label: dayjs().year() - 1,
+                      value: lasYear,
+                      label: lasYear,
                     },
                   ]}
-                  defaultValue={dayjs().year()}
+                  defaultValue={curYear}
                 />
               </div>
               <ReactECharts option={options1} />

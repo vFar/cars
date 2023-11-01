@@ -7,7 +7,7 @@ const styles = StyleSheet.create({
     marginLeft: "4px",
   },
   heading2: {
-    margin: "10px auto 0 auto",
+    margin: "10px auto 20px auto",
   },
   table: {
     display: "table",
@@ -84,7 +84,8 @@ const styles = StyleSheet.create({
   },
   tableCell: {
     margin: "auto",
-    marginTop: 5,
+    marginTop: 10,
+    marginBottom: 10,
     fontSize: 10,
   },
 });

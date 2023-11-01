@@ -1,6 +1,4 @@
 import React from "react";
-import "./App.css";
-
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import CarRegistry from './pages/CarRegistry/CarRegistry.js';
 import CarSalesRegistry  from './pages/CarSalesRegistry/CarSalesRegistry.js';

@@ -27,6 +27,20 @@ import { InsertRowBelowOutlined, EditOutlined } from "@ant-design/icons";
 import Navbar from "../Navbar.js";
 
 function CarRegistry() {
+  const salesRowData = localStorage.getItem("salesRowData");
+  const carRowData = localStorage.getItem("rowData");
+
+  const gridStyle = useMemo(() => ({ height: "100%", width: "100%" }), []);
+
+  if (!salesRowData) {
+    const initialSalesRowData = [];
+    localStorage.setItem("salesRowData", JSON.stringify(initialSalesRowData));
+  }
+
+  if(!carRowData){
+    const initialRowData = [];
+    localStorage.setItem("rowData", JSON.stringify(initialRowData));
+  }
 
   const [form] = Form.useForm();
   const [editData, setEditData] = useState(null);
@@ -290,20 +304,9 @@ function CarRegistry() {
   return (
     <>
       <Navbar />
-
       {contextHolder}
-      <Popconfirm
-        title="Delete the record"
-        description="Are you sure you want to delete record/s?"
-        okText="Yes"
-        cancelText="No"
-        onConfirm={onRemoveSelected}
-      >
-        <Button danger disabled={deleteDisabled}>
-          Delete Record
-        </Button>
-      </Popconfirm>
 
+      <div style={{display: 'flex', justifyContent: 'flex-start'}}>
       <Button
         icon={<InsertRowBelowOutlined />}
         onClick={() => setIsModalOpen1(true)}
@@ -890,7 +893,21 @@ function CarRegistry() {
         </Form>
       </Modal>
 
-      <div className="ag-theme-balham" style={{ height: "80vh", width: "100" }}>
+      <Popconfirm
+        title="Delete the record"
+        description="Are you sure you want to delete record/s?"
+        okText="Yes"
+        cancelText="No"
+        onConfirm={onRemoveSelected}
+      >
+        <Button danger disabled={deleteDisabled}>
+          Delete Record
+        </Button>
+      </Popconfirm>
+
+      </div>
+
+      <div className="ag-theme-balham" style={gridStyle}>
         <AgGridReact
           ref={gridRef}
           rowData={rowData}
@@ -903,6 +920,8 @@ function CarRegistry() {
           onRowDoubleClicked={onRowDoubleClicked}
           animateRows={true}
           rowHeight={35}
+          alwaysShowHorizontalScroll={true}
+          alwaysShowVerticalScroll={true}
         ></AgGridReact>
       </div>
     </>

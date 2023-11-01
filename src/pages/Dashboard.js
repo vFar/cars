@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import "./style.css";
 import { Row, Col, Card, Typography, Radio } from "antd";
 
@@ -20,7 +20,21 @@ import { AgGridReact } from "ag-grid-react";
 import ReactECharts from "echarts-for-react";
 
 const { Title } = Typography;
+
 const Dashboard = () => {
+    const salesRowData = localStorage.getItem("salesRowData");
+    const rowData = localStorage.getItem("rowData");
+  
+    if (!salesRowData) {
+      const initialSalesRowData = [];
+      localStorage.setItem("salesRowData", JSON.stringify(initialSalesRowData));
+    }
+
+    if(!rowData){
+      const initialRowData = [];
+      localStorage.setItem("rowData", JSON.stringify(initialRowData));
+    }
+
   const savedsalesRowData = JSON.parse(localStorage.getItem("salesRowData"));
   const savedcarRowData = JSON.parse(localStorage.getItem("rowData"));
 
@@ -28,29 +42,71 @@ const Dashboard = () => {
     .filter((row) => row.status === "Available")
     .slice(0, 5);
 
-  const carssoldMonthly = (bool) => {
-    var newVar = [];
+  
+  const curYear = dayjs().year();
+  const lasYear = dayjs().year()-1;
 
+  const [barYear, setBarYear] = useState(null);
+
+  const carssoldMonthly = (year) => {
+    // const counts = [];
+    // var newVar = [];
+    // var month = [];
+
+    // if(year === dayjs().year()-1){
+    //   for (let i = 0; i < savedsalesRowData.length; i++) {
+    //     const element = savedsalesRowData[i];
+    //     if(element.salestatus === 'Sold - Contract received from buyer' || element.salestatus === 'Vehicle has been delivered to buyer'){
+    //       if(element.date.slice(0, -6) === JSON.stringify(dayjs().year()-1))
+    //         newVar = [...newVar, element.date.slice(0, -3)]
+    //         setBarYear()
+    //     }
+    //   }
+    //     newVar.forEach(function (x) {
+    //       counts[x] = (counts[x] || 0) + 1;
+    //     });
+
+    // } else {
+    //   for (let i = 0; i < savedsalesRowData.length; i++) {
+    //     const element = savedsalesRowData[i];
+
+    //     if(element.salestatus === 'Sold - Contract received from buyer' || element.salestatus === 'Vehicle has been delivered to buyer'){
+    //       if(element.date.slice(0, -6) === JSON.stringify(dayjs().year())){
+    //         newVar = [...newVar, element.date.slice(0, -3)]
+    //         setBarYear()
+    //       }
+    //     }
+    //   }
+    //     newVar.forEach(function (x) {
+    //       counts[x] = (counts[x] || 0) + 1;
+    //     });
+    // }
+    if(year === undefined){
+      year = dayjs().year();
+    }
+
+    const counts = Array.from({ length: 12 }, () => 0);
+
+    const targetYear = year || dayjs().year(); // Use the selected year or the current year
+  
     for (let i = 0; i < savedsalesRowData.length; i++) {
       const element = savedsalesRowData[i];
-      if (element.date !== "") {
-        newVar = [...newVar, element.date.slice(0, -3)];
+      if (
+        (element.salestatus === 'Sold - Contract received from buyer' ||
+          element.salestatus === 'Vehicle has been delivered to buyer') &&
+        element.date.startsWith(`${targetYear}-`)
+      ) {
+        const month = parseInt(element.date.slice(5, 7), 10); // Extract the month
+        counts[month - 1]++; // Increment the count for the corresponding month
       }
     }
-
-    const counts = [];
-    newVar.forEach(function (x) {
-      counts[x] = (counts[x] || 0) + 1;
-    });
-
-    var returnval;
-    if (bool) {
-      returnval = Object.keys(counts);
-    } else {
-      returnval = Object.values(counts);
-    }
-    return returnval;
+  
+    setBarYear(counts);
   };
+
+  useEffect(() => {
+    carssoldMonthly(); // Call carssoldMonthly() function on page load
+  }, []);
 
   const mostfrequentBrand = () => {
     var newVar = [];
@@ -104,7 +160,6 @@ const Dashboard = () => {
   const options1 = {
     grid: { top: 8, right: 8, bottom: 24, left: 36 },
     xAxis: {
-      type: "category",
       data: [
         "January",
         "February",
@@ -125,7 +180,7 @@ const Dashboard = () => {
     },
     series: [
       {
-        data: carssoldMonthly(false),
+        data: barYear,
         type: "bar",
         smooth: true,
         color: "rgb(64,150,255)",
@@ -249,6 +304,7 @@ const Dashboard = () => {
   };
 
   const monthlyProfit = () => {
+    var formattedProfit = 0;
     // //in development, can be coded after salesregistry is done ( status and fullprice records are needed )
     // var test = 0;
     // const todayDate = dayjs().format('YYYY-MM-DD')
@@ -260,7 +316,7 @@ const Dashboard = () => {
     const salesInCurrentMonth = savedsalesRowData.filter((sale) => sale.date.startsWith(todayDate));
     const totalFullPrice = salesInCurrentMonth.reduce((total, sale) => total + sale.fullprice, 0);
   
-    const formattedProfit = formatNumber(totalFullPrice);
+    formattedProfit = formatNumber(totalFullPrice);
   
     return `€${formattedProfit}`;
   };
@@ -291,7 +347,7 @@ const Dashboard = () => {
         <Row
           style={{
             width: "100%",
-            marginTop: "70px",
+            marginTop: "50px",
             display: "flex",
             justifyContent: "space-between",
           }}
@@ -491,24 +547,25 @@ const Dashboard = () => {
                     textAlign: "center",
                   }}
                 >
-                  Sale count statistics
+                  Sale Count Statistics
                 </Title>
 
                 <Radio.Group
                   buttonStyle="solid"
                   style={{ alignSelf: "flex-end", margin: "40px 0" }}
                   optionType="button"
+                  onChange={(e) => carssoldMonthly(e.target.value)}
                   options={[
                     {
-                      value: dayjs().year(),
-                      label: dayjs().year(),
+                      value: curYear,
+                      label: curYear,
                     },
                     {
-                      value: dayjs().year() - 1,
-                      label: dayjs().year() - 1,
+                      value: lasYear,
+                      label: lasYear,
                     },
                   ]}
-                  defaultValue={dayjs().year()}
+                  defaultValue={curYear}
                 />
               </div>
               <ReactECharts option={options1} />
@@ -544,7 +601,8 @@ const Dashboard = () => {
           </Col>
         </Row>
       </div>
-
+      
+      {/* footer keeps bugging with 100% height and width for react root element */}
       <Footer />
     </>
   );
