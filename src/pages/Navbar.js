@@ -12,7 +12,10 @@ import {
 const { Header } = Layout;
 
 function Dashboard() {
+  //useLocation piedāvā React-Router
   const location = useLocation();
+
+  //Mainīgie, lai varam uzzināt, kurā lapā lietotājs atrodas
   const { pathname } = location;
   const splitLocation = pathname.split("/");
 
@@ -29,11 +32,7 @@ function Dashboard() {
               <Button
                 icon={<FontAwesomeIcon icon={faHouse} />}
                 type="primary"
-                className={
-                  splitLocation[1] === ""
-                    ? "dashboardBtn activeLink"
-                    : "dashboardBtn"
-                }
+                className={ splitLocation[1] === "" ? "dashboardBtn activeLink" : "dashboardBtn" }
               >
                 Dashboard
               </Button>
@@ -43,11 +42,7 @@ function Dashboard() {
               <Button
                 icon={<FontAwesomeIcon icon={faCar} />}
                 type="primary"
-                className={
-                  splitLocation[1] === "carregistry"
-                    ? "dashboardBtn activeLink"
-                    : "dashboardBtn"
-                }
+                className={ splitLocation[1] === "carregistry" ? "dashboardBtn activeLink" : "dashboardBtn" }
               >
                 Car Registry
               </Button>
@@ -56,11 +51,7 @@ function Dashboard() {
             <Link to="/salesregistry">
               <Button
                 icon={<FontAwesomeIcon icon={faCartShopping} />}
-                className={
-                  splitLocation[1] === "salesregistry"
-                    ? "dashboardBtn activeLink"
-                    : "dashboardBtn"
-                }
+                className={ splitLocation[1] === "salesregistry" ? "dashboardBtn activeLink" : "dashboardBtn" }
                 type="primary"
               >
                 Sale Registry

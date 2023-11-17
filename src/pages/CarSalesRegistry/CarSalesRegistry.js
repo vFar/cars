@@ -16,21 +16,24 @@ import {
   Modal,
   Timeline,
   Popconfirm,
-  message
+  message,
+  Tooltip
 } from "antd";
 import {
   SettingOutlined,
   InsertRowBelowOutlined,
   EditOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-balham.css";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import PdfDocument from "../PdfDocument.js";
 import "../style.css";
-import Navbar from '../Navbar.js';
+import Navbar from "../Navbar.js";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
+import ButtonGroup from "antd/es/button/button-group.js";
 
 dayjs.extend(isBetween);
 const { RangePicker } = DatePicker;
@@ -39,12 +42,25 @@ function CarSalesRegistry() {
   const saleRowData = localStorage.getItem("salesRowData");
   const carRowData = localStorage.getItem("rowData");
 
-  const gridStyle = useMemo(() => ({ height: "100%", width: "100%"}), []);
+  //jāizveido contextHolder, kas ļauj lietot Antd Message
+  const [messageApi, contextHolder] = message.useMessage();
 
+  //mainīgie priekš noklusējuma PVN likmes datiem no localStorage
+  const VATData = localStorage.getItem("defaultVAT");
+  const defaultVATData = parseInt(VATData);
+
+  //pēc AG-Grid mājaslapas resursiem, ir jālieto useMemo, lai iegūtu *nemainīgu* izmēra tabulu, 152px iekļaujas navbar augstums un atstarpe starp navbar un tabulu
+  const gridStyle = useMemo(
+    () => ({ height: "calc(100% - 152px)", width: "100%" }),
+    []
+  );
+
+  //useState, lai pēc noklusējuma izslēgt CRUD pogas
   const [deleteDisabled, setDeleteDisabled] = useState(true);
   const [editDisabled, setEditDisabled] = useState(true);
   const [addDisabled, setAddDisabled] = useState(false);
 
+  //nepieciešami, lai izveidotu tukšus mainīgos iekš localStorage
   if (!saleRowData) {
     const initialSalesRowData = [];
     localStorage.setItem("salesRowData", JSON.stringify(initialSalesRowData));
@@ -55,6 +71,8 @@ function CarSalesRegistry() {
     localStorage.setItem("rowData", JSON.stringify(initialRowData));
   }
 
+  //React Hook - lietojam, lai nodrošināt formas validāciju ar noteikumiem (rules)
+  const [defaultVATForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [addForm] = Form.useForm();
 
@@ -64,35 +82,27 @@ function CarSalesRegistry() {
     { children: "Received a rating" },
     { children: "Car sale has begun" },
     { children: "Car sale has completed" },
-    {
-      children: "Buyer has received a sales contract",
-    },
-    {
-      children: "Sold - Contract received from buyer",
-    },
-    {
-      children: "Vehicle has been delivered to buyer",
-    },
+    { children: "Buyer has received a sales contract" },
+    { children: "Sold - Contract received from buyer" },
+    { children: "Vehicle has been delivered to buyer" },
   ];
 
-  const [editData, setEditData] = useState(null);
+  const [editData, setEditData] = useState([]);
   const [salesFormData, setsalesFormData] = useState();
   const [salesRowData, setsalesRowData] = useState(() => {
     const savedsalesRowData = localStorage.getItem("salesRowData");
     return savedsalesRowData ? JSON.parse(savedsalesRowData) : [];
   });
 
+  //katru reizi pirms lapu ielādes, useEffect nodrošinās AG-Grid ielādi ar jauniem datiem
   useEffect(() => {
     localStorage.setItem("salesRowData", JSON.stringify(salesRowData));
   }, [salesRowData]);
 
-  const savedNumberplates = localStorage.getItem("numberplates");
-  const numberplates = savedNumberplates ? JSON.parse(savedNumberplates) : [];
+  const [defaultVATRate, setDefaultVATRate] = useState(defaultVATData);
+  const [userDefinedVATRate, setUserDefinedVATRate] = useState(defaultVATData);
 
-  const [messageApi, contextHolder] = message.useMessage();
-  const [defaultVATRate, setDefaultVATRate] = useState(21);
-  const [userDefinedVATRate, setUserDefinedVATRate] = useState(21);
-
+  //Krāsu mainīgie priekš AG-Grid 'Status' kolonnas
   const testingColors = {
     "status-pending": (params) =>
       params.value === "New request received" ||
@@ -107,10 +117,13 @@ function CarSalesRegistry() {
     "status-canceled": (params) => params.value === "Canceled",
   };
 
+  //AG-Grid piedāvā lietot pašveidotu renderer - šeit tas tiek pielietots, lai iekļautu statusus zem <span> tag, lai varētu atsevišķi
+  //formatēt AG-Grid kolonnas elementus
   const testingRenderer = (params) => {
     return <span className="status-element">{params.value}</span>;
   };
 
+  //Cenas formatētājs
   const currencyFormatter = (params) => {
     if (params.value === null || params.value === undefined) {
       return null;
@@ -124,22 +137,22 @@ function CarSalesRegistry() {
       .toString()
       .replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
   };
-
+  
+  //Visas kolonnas priekš AG-Grid
   const [columnDefs] = useState([
     {
       field: "vehicle",
       headerName: "Vehicle",
-      sortable: true,
       filter: "agTextColumnFilter",
     },
     {
       field: "salestatus",
       headerName: "Status",
-      sortable: true,
       valueGetter: (params) => {
         if (params.data.salestatus) {
           return params.data.salestatus;
         }
+        //visi statusi pēc noklusējuma
         return "New request received";
       },
       cellClassRules: testingColors,
@@ -148,93 +161,128 @@ function CarSalesRegistry() {
     {
       field: "appraiser",
       headerName: "Appraiser",
-      sortable: true,
+      headerTooltip: "An appraiser can have a representative who may be a person or a company",
       filter: "agTextColumnFilter",
     },
     {
       field: "netoprice",
       headerName: "Neto price",
-      sortable: true,
+      headerClass: "ag-right-aligned-header",
       valueFormatter: currencyFormatter,
+      cellStyle: { justifyContent: "right" },
     },
     {
       field: "vatrate",
       headerName: "VAT rate",
-      sortable: true,
+      headerClass: "ag-right-aligned-header",
       valueGetter: (params) => {
         return params.data.vatrate || defaultVATRate;
       },
       valueFormatter: (params) => {
         return `${params.value || defaultVATRate}%`;
       },
+      cellStyle: { justifyContent: "right" },
     },
     {
       field: "fullprice",
       headerName: "Full price",
-      sortable: true,
+      headerClass: "ag-right-aligned-header",
       valueFormatter: currencyFormatter,
+      cellStyle: { justifyContent: "right" },
     },
     {
       field: "date",
       headerName: "Date",
+      headerTooltip: "The format for dates is YYYY-MM-DD",
       cellDataType: "dateString",
-      sortable: true,
+      cellStyle: { justifyContent: "center" },
     },
   ]);
 
+  //Noklusējuma kolonnas definējumi, kas attiecas uz visām kolonnām
   const defaultColDef = useMemo(() => {
     return {
       flex: 1,
+      sortable: true,
+      resizable: true,
+      maxWidth: 300,
+      minWidth: 100,
+      tooltipShowDelay: 300,
     };
   }, []);
 
   const gridRef = useRef();
 
+  //filtrēšanas funkcija, kuru pielieto Antd Select gan pievienošanas formā, gan rediģēšanas formā
   const filterOption = (input, option) =>
     (option?.label ?? "").toLowerCase().includes(input.toLowerCase());
 
-  //Modal
+  //Modal useState mainīgie
   const [isModalOpen1, setIsModalOpen1] = useState(false);
   const [isModalOpen2, setIsModalOpen2] = useState(false);
   const [isModalOpen3, setIsModalOpen3] = useState(false);
 
+  //funkcija, lai saglabātu noklusējuma PVN likmi
+  const handleDefaultVAT = () => {
+    setUserDefinedVATRate(defaultVATRate);
+    setIsModalOpen1(false);
+    localStorage.setItem("defaultVAT", defaultVATRate);
+  };
+
+  //Formas funkcijas, kas nodrošina jaunu ierakstu izveidi
   const handleFormSubmit = () => {
     const carRowData = JSON.parse(localStorage.getItem("rowData"));
     const dateValue = salesFormData.date
       ? salesFormData.date.format("YYYY-MM-DD")
       : "";
+
+    salesFormData.appraiser = salesFormData.appraiser.trim();
+
+    // pārbauda vai novērtētāja Input lauks ir tukšs pēc lieko atstarpu izdzēšanas
+    if (salesFormData.appraiser === "") {
+      messageApi.open({
+        type: "error",
+        content:
+          "Appraiser field is required and cannot be empty or contain only whitespaces.",
+      });
+      return; // Ja jā, tad atceļ jaunu ierakstu iesniegšanu
+    }
+
     const newsalesData = {
       ...salesFormData,
       date: dateValue,
-      vatrate: userDefinedVATRate,
+      vatrate: defaultVATData,
       salestatus: "New request received",
     };
 
     setsalesRowData([newsalesData, ...salesRowData]);
-    setFilteredSalesRowData((prevData) => [newsalesData, ...prevData]);
+    // setFilteredSalesRowData((prevData) => [newsalesData, ...prevData]);
 
+    //automašīnu meklēšanu un statusu mainīšanu arī iekļauj šeit, jo veidojas konflikti, izsaucot funkciju updateVehiclesStatus()
     const selectedVehicle = carRowData.find(
       (vehicle) => vehicle.numberplate === salesFormData.vehicle
     );
 
     if (selectedVehicle) {
-      // Update the status of the selected vehicle to 'Reserved'
+      // Atjaunina pārdošanas automašīnas statusu uz 'Reserved' automašīnu reģistrā
       selectedVehicle.status = "Reserved";
 
-      // Update the car registry data in localStorage
+      // Atjaunina automašīnu reģistra localStorage
       localStorage.setItem("rowData", JSON.stringify(carRowData));
     }
 
+    //ziņojumu izvade caur Antd Message
     messageApi.open({
       type: "success",
       content: "New sale record has been successfully added",
     });
 
-    addForm.resetFields();
-
     setIsModalOpen2(false);
+    //pēc formu iesniegšanas, atiestata visus laukus pa nullēm (šis ir vajadzīgs, citādi tam ir konflikti ar editData, skatīt handleEditSubmit() funkciju)
+    addForm.resetFields();
   };
 
+  //visu statusu masīvs
   const allStatuses = [
     "New request received",
     "Evaluation has begun",
@@ -246,8 +294,7 @@ function CarSalesRegistry() {
     "Vehicle has been delivered to buyer",
   ];
 
-  const [selectedStatus, setSelectedStatus] = useState(allStatuses[0]);
-
+  //funkcija, kas ļauj lietotājam mainīt statusus pakāpeniski
   const updateAvailableStatuses = (status) => {
     const selectedIndex = allStatuses.indexOf(status);
 
@@ -264,81 +311,90 @@ function CarSalesRegistry() {
     return availableStatuses;
   };
 
-  // const [availableStatuses, setAvailableStatuses] = useState(
-  //   updateAvailableStatuses(selectedStatus)
-  // );
+  //pēc noklusējuma visiem ierakstiem statuss ir 'Saņems jauns pieprasījums'
   const [availableStatuses, setAvailableStatuses] = useState(
     updateAvailableStatuses("New request received")
   );
 
+  //funkcija, kas ļauj manipulēt ar datiem pavisam citā reģistrā
   const updateVehicleStatus = (numberplate, newStatus) => {
     const carRowData = JSON.parse(localStorage.getItem("rowData"));
 
-    // Find the vehicle with the matching numberplate
+    // map atrod automašīnu ar vienādu numurzīmi automašīnu reģistrā
     const updatedCarRowData = carRowData.map((vehicle) => {
       if (vehicle.numberplate === numberplate) {
         return { ...vehicle, status: newStatus };
       }
+
       return vehicle;
     });
 
-    // Update the car registry data in localStorage
+    // atjauno automašīnu reģistra localStorage
     localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
   };
 
+  //funkcija, kas nodrošina jaunu statusu saglabāšanu un pārslēgšanu
   const handleStatusChange = (value) => {
     if (availableStatuses.includes(value)) {
-      setCurrentEditStatus(value);
       setEditData({ ...editData, salestatus: value });
 
-      if (
-        value === "Sold - Contract received from buyer" ||
-        value === "Vehicle has been delivered to buyer"
-      ) {
-        // Update the vehicle status to "Sold"
+      if ( value === "Sold - Contract received from buyer" || value === "Vehicle has been delivered to buyer") {
+        // atjauno statusu uz 'Sold' jeb pārdots automašīnu reģistrā
         const selectedVehicle = selectedRowForEdit.vehicle;
         updateVehicleStatus(selectedVehicle, "Sold");
       }
     }
   };
 
-  const [filteredSalesRowData, setFilteredSalesRowData] =
-    useState(salesRowData);
-
-  //RangePicker for PDF (not working)
+  //filteredSalesRowData nepieciešams, kad iestata datuma periodu
+  const [filteredSalesRowData, setFilteredSalesRowData] = useState(salesRowData);
   const [downloadDisabled, setDownloadDisabled] = useState(true);
 
+  //useState mainīgie priekš datuma perioda (RangePicker)
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+
+  //Funkcija, kas nodrošina datuma perioda izvēli un tās ietekmi uz AG-Grid ierakstiem
   const handleDateRangeChange = (dates, dateStrings) => {
     setStartDate(dateStrings[0]);
     setEndDate(dateStrings[1]);
+
     const filteredData = salesRowData.filter((row) => {
+      //Ja ierakstā ir datums
       if (row.date) {
         const date = dayjs(row.date, "YYYY-MM-DD");
         setAddDisabled(true);
+        //DayJS isBetween ļauj uzzināt vai datums ietilpst norādītajā periodā (boolean)
         return date.isBetween(dateStrings[0], dateStrings[1], null, "[]");
       }
       return false;
     });
+
+    //pārbaude "Download" pogai priekš PDF
+    if (dateStrings[0] && dateStrings[1] && filteredData.length > 0) {
+      setDownloadDisabled(false); // Ieslēdz pogu, ja datums ir norādīts un *tajā* ir dati
+    } else {
+      setDownloadDisabled(true); // Izslēdz pogu, ja datums nav norādīts vai nav datu
+    }
+
+    //pārbauda vai tika veiktas jebkādas CRUD funkcijas kamēr datuma periods ir izvēlēts
     setFilteredSalesRowData(filteredData);
     if (dates === null) {
+      setAddDisabled(false);
       setFilteredSalesRowData(salesRowData);
     }
   };
 
-  useEffect(() => {
-    if (startDate !== "" && endDate !== "") {
-      setDownloadDisabled(false);
-    } else {
-      setDownloadDisabled(true);
-    }
-  }, [startDate, endDate]);
+  //datepicker limit
+  const minDate = dayjs().subtract(1, 'month').format('YYYY-MM-DD');
+  const maxDate = dayjs().format('YYYY-MM-DD');
+  
+  const disabledDate = (current) => {
+    const currentDate = current.format('YYYY-MM-DD');
+    return current && (currentDate < minDate || currentDate > maxDate);
+  };
 
   const [selectedRowForEdit, setSelectedRowForEdit] = useState(null);
-  const updateLocalStorageData = (data) => {
-    localStorage.setItem("salesRowData", JSON.stringify(data));
-  };
 
   const filteredDataWithStatus = filteredSalesRowData.filter((item) => {
     return (
@@ -346,150 +402,125 @@ function CarSalesRegistry() {
       item.salestatus === "Vehicle has been delivered to buyer"
     );
   });
-  const rowCount = filteredDataWithStatus.length;
 
+  const rowCount = filteredDataWithStatus.length;
   const totalFullPrice = filteredDataWithStatus.reduce((total, item) => {
     return total + parseFloat(item.fullprice);
   }, 0);
-
+  
+  //funkcija, kas pārbauda izvēlēto rindu un attiecīgi izslēdz CRUD pogas
   const onSelectionChanged = useCallback(() => {
+    //iegūst datus no izvēlētā ieraksta
     const selectedRows = gridRef.current.api.getSelectedRows();
+    
+    const singleSelectedRow = selectedRows[0];
 
-    switch (selectedRows.length) {
-      case 0:
-        setEditDisabled(true);
-        setDeleteDisabled(true);
-        break;
-      case 1:
-        const singleSelectedRow = selectedRows[0];
-        if (
-          singleSelectedRow.salestatus === "Canceled" ||
-          singleSelectedRow.salestatus === "Vehicle has been delivered to buyer"
-        ) {
-          setEditDisabled(true);
-          setDeleteDisabled(true);
-        } else {
-          setEditDisabled(false);
-          setDeleteDisabled(false);
-        }
-        break;
-      default:
-      //NEEDS REWORKING!!?!?!?
+    const isSingleRowSelected = selectedRows.length === 1;
+    const isCancelledOrDelivered =
+      singleSelectedRow &&
+      (singleSelectedRow.salestatus === "Canceled" ||
+        singleSelectedRow.salestatus === "Vehicle has been delivered to buyer");
 
-      // const multiSelectedRow = gridRef.current.api.getSelectedRows();
-      // if ((multiSelectedRow.salestatus === 'Canceled') || (multiSelectedRow.salestatus === 'Vehicle has been delivered to buyer')) {
-      //   setEditDisabled(true);
-      //   setDeleteDisabled(true);
-      // } else {
-      //   setEditDisabled(false);
-      //   setDeleteDisabled(false);
-      // }
-      // // setEditDisabled(true);
-      // // setDeleteDisabled(false);
-      // break;
-    }
+    setEditDisabled(!isSingleRowSelected || isCancelledOrDelivered);
+    setDeleteDisabled(!isSingleRowSelected || isCancelledOrDelivered);
   }, []);
 
+  //Funkcija nolasa datus no Localstorage par automašīnas
   const getAvailableNumberplates = () => {
     const carRowData = JSON.parse(localStorage.getItem("rowData"));
-    const availableNumberplates = carRowData
-      .filter((row) => row.status === "Available")
-      .map((row) => row.numberplate);
+
+    //Iegūst tās automašīnas datus kam statuss ir pieejams
+    const availableNumberplates = carRowData.filter((row) => row.status === "Available").map((row) => row.numberplate);
 
     return availableNumberplates;
   };
 
-  const cancelSaleBtn = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
-    const selectedRows = gridRef.current.api.getSelectedRows();
-    if (selectedRows.length > 0) {
-      const updatedCarRowData = [...carRowData];
+  //funkcija nodrošina statusu / automašīnas pārdošanu atcelšanu
+  const cancelSale = (isEdit = false) => {
+      // Iegūst datus par automašīnu reģistru caur localStorage
+      const carRowData = JSON.parse(localStorage.getItem("rowData"));
+    
+      // Iegūst izvēlētās rindas ieraksta datus
+      const selectedRows = gridRef.current.api.getSelectedRows();
+    
+      if (selectedRows.length > 0) {
+        // Atjaunina automašīnas statusu atpakaļ uz pieejamo pēc atcelšanas automašīnu reģistrā
+        const updatedCarRowData = carRowData.map((vehicle) => selectedRows.some((row) => row.vehicle === vehicle.numberplate) ? { ...vehicle, status: "Available" } : vehicle);
+    
+        // Atjaunina localStorage ar jauniem datiem
+        localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
+        
+        // Atjaunina pārdošanas statusu uz 'Canceled'
+        const updatedData = salesRowData.map((row) => selectedRows.includes(row) ? { ...row, salestatus: "Canceled" } : row);
+    
+        // Atjaunina AG-Grid un localStorage ar jauniem datiem
+        setsalesRowData(updatedData);
 
-      selectedRows.forEach((row) => {
-        const selectedVehicle = updatedCarRowData.find(
-          (vehicle) => vehicle.numberplate === row.vehicle
-        );
-
-        if (selectedVehicle) {
-          selectedVehicle.status = "Available";
+        setEditDisabled(true);
+        setDeleteDisabled(true);
+    
+        // Ja ierakstu filtrs tiek ieslēgts, tad atjaunina ieraksta datus AG-Grid
+        if (excludeSoldAndCanceled) {
+          const filteredData = updatedData.filter(
+            (row) =>
+              !(
+                row.salestatus === "Sold - Contract received from buyer" ||
+                row.salestatus === "Vehicle has been delivered to buyer" ||
+                row.salestatus === "Canceled"
+              )
+          );
+          setFilteredSalesRowData(filteredData);
+          setDownloadDisabled(filteredData.length === 0);
+        } else {
+          // Ja filtrs nav aktīvs, tad atjaunina datus ar visiem ierakstiem
+          setFilteredSalesRowData(updatedData);
+          setDownloadDisabled(updatedData.length === 0);
         }
-      });
 
-      localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
-      const updatedData = filteredSalesRowData.map((row) => {
-        if (selectedRows.includes(row)) {
-          return {
-            ...row,
-            salestatus: "Canceled",
-          };
+
+        messageApi.open({
+          type: "warning",
+          content: "Sale has been canceled!",
+        });
+        
+        // Aizver modal, ja automašīnas pārdošanas atcelšana notiek caur modal
+        if (isEdit) {
+          setIsModalOpen3(false);
         }
-        return row;
-      });
-
-      setFilteredSalesRowData(updatedData);
-      updateLocalStorageData(updatedData);
-
-      messageApi.open({
-        type: "warning",
-        content: "Sale has been canceled!",
-      });
-    }
-  };
-
-  const cancelSaleEditBtn = () => {
-    const carRowData = JSON.parse(localStorage.getItem("rowData"));
-    if (selectedRowForEdit) {
-      const updatedCarRowData = [...carRowData];
-
-      const selectedVehicle = updatedCarRowData.find(
-        (vehicle) => vehicle.numberplate === selectedRowForEdit.vehicle
-      );
-
-      if (selectedVehicle) {
-        selectedVehicle.status = "Available";
       }
-
-      localStorage.setItem("rowData", JSON.stringify(updatedCarRowData));
-      const updatedSale = {
-        ...selectedRowForEdit,
-        salestatus: "Canceled",
-      };
-
-      const updatedData = filteredSalesRowData.map((row) =>
-        row === selectedRowForEdit ? updatedSale : row
-      );
-
-      setFilteredSalesRowData(updatedData);
-      updateLocalStorageData(updatedData);
-
-      messageApi.open({
-        type: "success",
-        content: "Sale has been canceled!",
-      });
-
-      setIsModalOpen3(false);
-    }
   };
 
+  //funkcija, kas ļauj rediģēt ierakstu caur dubult-klikšķa uz rindas
   const onRowDoubleClicked = (event) => {
     const selectedRows = gridRef.current.api.getSelectedRows();
-    if (
-      event.data.salestatus !== "Canceled" &&
-      event.data.salestatus !== "Vehicle has been delivered to buyer"
-    ) {
+
+    //Rediģēšana ir izslēgta, ja statuss ir atcelts vai automašīna ir pārdota un jau nogādāta pircējam
+    if ( event.data.salestatus !== "Canceled" && event.data.salestatus !== "Vehicle has been delivered to buyer") {
       setIsModalOpen3(true);
       setSelectedRowForEdit(event.data);
 
-      if (selectedRows.length === 1) {
-        setEditData(selectedRows[0]);
-        setIsModalOpen3(true);
-        //handleEdit so that neto is disabled when double-clicking
-        handleEdit();
-      }
+      setEditData(selectedRows[0]);
+      handleEdit();
     }
   };
 
+  //Noklusējuma PVN procentu formas validācija
+  const onDefaultVATFinish = () => {
+    defaultVATForm
+      .validateFields()
+      .then(() => {
+        handleDefaultVAT();
+      })
+      .catch((error) => {
+        console.error("Validation form error:", error);
+      });
+  };
+
+  //Ierakstu pievienošanas formas validācija
   const onFormFinish = () => {
+    //Ja forma / modals tiek aizvērts, tad pogas tiek izslēgtas
+    setEditDisabled(true);
+    setDeleteDisabled(true);
     addForm
       .validateFields()
       .then(() => {
@@ -500,7 +531,11 @@ function CarSalesRegistry() {
       });
   };
 
+  //Rediģēšanas formas validācija
   const onEditFinish = () => {
+    //Ja forma / modals tiek aizvērts, tad pogas tiek izslēgtas
+    setEditDisabled(true);
+    setDeleteDisabled(true);
     editForm
       .validateFields()
       .then(() => {
@@ -511,21 +546,74 @@ function CarSalesRegistry() {
       });
   };
 
+  //funkcija priekš Form saglabāšanas, kad rediģē ierakstu
   const handleEditSubmit = () => {
-    const selectedRows = gridRef.current.api.getSelectedRows();
-    const selectedSale = selectedRows[0];
-
     if (selectedRowForEdit && editData) {
-      let updatedFullPrice = editData.fullprice;
+      const dateValue = editData.date;
 
-      if (editData.salestatus === "Buyer has received a sales contract") {
-        const today = dayjs().format("YYYY-MM-DD");
-        editData.date = today;
+      // attīra Input lauku no liekām atstarpēm, lietojot array.trim()
+      editData.appraiser = editData.appraiser.trim();
+
+      // pārbauda vai novērtētāja Input lauks ir tukšs pēc lieku atstarpu izņemšanas
+      if (editData.appraiser === "") {
+        messageApi.open({
+          type: "error",
+          content:
+            "Appraiser field is required and cannot be empty or contain only whitespaces.",
+        });
+
+        return; // neturpina Form iesniegšanu
       }
 
-      if (editData.salestatus === "Car sale has completed") {
-        updatedFullPrice =
-          (editData.netoprice * (100 + editData.vatrate)) / 100;
+      let updatedFullPrice = editData.fullprice;
+
+      const today = dayjs().format('YYYY-MM-DD');
+
+      // if (editData.salestatus === 'Buyer has received a sales contract' && !dateValue) {
+      //   editData.date = today;
+      // }
+      
+      // if (editData.salestatus === "Car sale has completed") {
+      //   updatedFullPrice = (editData.netoprice * (100 + editData.vatrate)) / 100;
+      //   editData.date = null;
+      // }
+      
+      // if (editData.salestatus === "Vehicle has been delivered to buyer") {
+      //   messageApi.open({
+      //     type: "success",
+      //     content: "Vehicle has been successfully sold",
+      //   });
+      // }
+
+      switch (editData.salestatus) {
+        case "Buyer has received a sales contract":
+          if (!dateValue) {
+            editData.date = today;
+          }
+          break;
+
+        case "Car sale has completed":
+          updatedFullPrice =
+            (editData.netoprice * (100 + editData.vatrate)) / 100;
+          editData.date = null;
+          break;
+
+        case "Vehicle has been delivered to buyer":
+          messageApi.open({
+            type: "success",
+            content: "Vehicle has been successfully sold",
+          });
+          break;
+
+        default:
+          break;
+      }
+
+      if (selectedRowForEdit.vehicle !== editData.vehicle) {
+        // Atjaunina pašreizējās izvēlētās automašīnas statusu uz pieejamu automašīnu reģistrā
+        updateVehicleStatus(selectedRowForEdit.vehicle, "Available");
+        // Atjaunina automašīnas statusu uz rezervētu automašīnu reģistrā
+        updateVehicleStatus(editData.vehicle, "Reserved");
       }
 
       const updatedData = salesRowData.map((row) =>
@@ -535,23 +623,40 @@ function CarSalesRegistry() {
       );
 
       setsalesRowData(updatedData);
-      setFilteredSalesRowData(updatedData);
+
+      // IF pārbaude, ja lietotājs ir izvēlējies datuma periodu
+      if (startDate && endDate) {
+        //Filtrē datus attiecīgi pret datuma periodu
+        const filteredData = updatedData.filter((row) => {
+          if (row.date) {
+            const date = dayjs(row.date, "YYYY-MM-DD");
+            return date.isBetween(startDate, endDate, null, "[]");
+          }
+          return false;
+        });
+
+        //Atjaunina jaunus filtrētus datus
+        setFilteredSalesRowData(filteredData);
+      } else {
+        //Ja datuma periods nav noteikts, tad atjaunina filtrētos datus ar *visiem* datiem
+        setFilteredSalesRowData(salesRowData);
+      }
 
       setIsModalOpen3(false);
+      // editForm.resetFields();
     }
   };
 
-  const [currentEditStatus, setCurrentEditStatus] = useState(
-    "New request received"
-  );
-  const [isVehicleSelectionDisabled, setIsVehicleSelectionDisabled] =
-    useState(false);
+  //Nepieciešamie UseState priekš rediģēšanas Input laukiem un Timeline
+  const [isVehicleSelectionDisabled, setIsVehicleSelectionDisabled] = useState(false);
   const [isNetoInputDisabled, setIsNetoInputDisabled] = useState(false);
-
+  const [isDateInputDisabled, setIsDateInputDisabled] = useState(false);
   const [timelineColor, setTimelineColor] = useState("gray");
 
   const handleEdit = () => {
+    //iegūst datus mainīgā, pielietojot AG-Grid API
     const selectedRows = gridRef.current.api.getSelectedRows();
+
     const timelineColors = () => {
       const selectedIndex = allStatuses.indexOf(selectedRows[0].salestatus);
 
@@ -570,67 +675,140 @@ function CarSalesRegistry() {
           setTimelineColor();
         }
       }
-
       return timelineChildren;
     };
 
+    //palaiž izveidoto funkciju, lai rādītu krāsas no Antd Timeline komponentes
     setTimelineColor(timelineColors());
-    console.log(timelineColor);
-    if (selectedRows.length === 1) {
-      const selectedSale = selectedRows[0];
-      setEditData(selectedRows[0]);
-      setCurrentEditStatus(selectedRows[0].salestatus);
 
-      if (selectedSale.salestatus !== "New request received") {
-        setIsVehicleSelectionDisabled(true);
-      } else {
-        setIsVehicleSelectionDisabled(false);
-      }
+    const selectedSale = selectedRows[0];
+    setEditData(selectedRows[0]);
 
-      if (selectedSale.salestatus === "Received a rating") {
-        setIsNetoInputDisabled(false);
-      } else {
-        setIsNetoInputDisabled(true);
-      }
+    //UseState mainīgie, kuri sastāv no IF sazarojumiem, lai kontrolētu disabled prop priekš Input lauka
+    setIsVehicleSelectionDisabled(selectedSale.salestatus !== "New request received");
+    setIsNetoInputDisabled(selectedSale.salestatus !== "Received a rating");
 
-      setAvailableStatuses(updateAvailableStatuses(selectedRows[0].salestatus));
-      setIsModalOpen3(true);
+    // array pārbaude, lai izslēgtu datuma Input laukus
+    const disableDateStatuses = [ 'Buyer has received a sales contract', 'Sold - Contract received from buyer' ];
+    setIsDateInputDisabled(!disableDateStatuses.includes(selectedSale.salestatus));
+
+    setAvailableStatuses(updateAvailableStatuses(selectedRows[0].salestatus));
+    setIsModalOpen3(true);
+  };
+
+  useEffect(() => {
+    if ( isNaN(defaultVATData) || defaultVATData === null || defaultVATData === 0 ) {
+      // pēc noklusējuma, ja PVN likme ir null, undefined, NaN vai 0, tad to aizstāj ar 21%
+      localStorage.setItem("defaultVAT", "21");
+      setDefaultVATRate(21);
     }
+  }, [defaultVATData]);
+
+  //funkcija, kas maina editData priekš ieraksta rediģēšanas *nepieciešams, lai varētu rediģēt datumu*
+  const handleInputChange = (field, value) => {
+    setEditData({ ...editData, [field]: value });
   };
 
-  const handleCloseModal = () => {
-    addForm.resetFields();
-    editForm.resetFields();
-    setIsModalOpen2(false);
+
+  //mainīgie priekš ierakstu filtra
+  const [excludeSoldAndCanceled, setExcludeSoldAndCanceled] = useState(false);
+  const handleExcludeSoldAndCanceled = () => {
+    setExcludeSoldAndCanceled(!excludeSoldAndCanceled);
   };
+
+  useEffect(() => {
+    const updateFilteredData = () => {
+      let updatedData = salesRowData;
+
+      if (excludeSoldAndCanceled) {
+        updatedData = updatedData.filter(
+          (row) =>
+            !(
+              row.salestatus === "Sold - Contract received from buyer" ||
+              row.salestatus === "Vehicle has been delivered to buyer" ||
+              row.salestatus === "Canceled"
+            )
+        );
+      }
+
+      if (startDate && endDate) {
+        const filteredData = updatedData.filter((row) => {
+          if (row.date) {
+            const date = dayjs(row.date, "YYYY-MM-DD");
+            return date.isBetween(startDate, endDate, null, "[]");
+          }
+          return false;
+        });
+
+        setDownloadDisabled(filteredData.length === 0);
+        setFilteredSalesRowData(filteredData);
+      } else {
+        setDownloadDisabled(updatedData.length === 0);
+        setFilteredSalesRowData(updatedData);
+      }
+    };
+
+    updateFilteredData();
+  }, [excludeSoldAndCanceled, salesRowData, startDate, endDate]);
+
+
+  // aizstādnis initialValues priekš rediģēšanas Form
+  useEffect(() => {
+    if (editData) {
+      editForm.setFieldsValue({
+        neto: editData.netoprice,
+        appraiser: editData.appraiser,
+        vatrate: editData.vatrate,
+        date: editData.date ? dayjs(editData.date, "YYYY-MM-DD") : '',
+      });
+    }
+  }, [editData, editForm]);
+  
 
   return (
     <>
       <Navbar />
       {contextHolder}
 
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <div>
-          <Button
-            icon={<SettingOutlined />}
-            onClick={() => setIsModalOpen1(true)}
-          ></Button>
+      <div style={{ display: "flex", justifyContent: "flex-start" }}>
+        <ButtonGroup>
+          <Tooltip
+            title="Set your default VAT rate here!"
+            color="rgb(64,150,255)"
+            placement="topRight"
+          >
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setIsModalOpen1(true)}
+            ></Button>
+          </Tooltip>
 
           <Modal
             title="VAT value"
             keyboard={false}
             maskClosable={false}
             open={isModalOpen1}
-            onOk={() => {
-              setUserDefinedVATRate(defaultVATRate);
-              setIsModalOpen1(false);
-            }}
+            onOk={onDefaultVATFinish}
             okText="Set"
+            cancelText="Quit"
             onCancel={() => setIsModalOpen1(false)}
           >
-            <Form>
-              <Form.Item label="Default VAT rate: ">
+            <Form
+              form={defaultVATForm}
+              initialValues={{ defaultVAT: defaultVATData }}
+            >
+              <Form.Item
+                label="Default VAT rate:"
+                name="defaultVAT"
+                rules={[
+                  {
+                    required: true,
+                    message: "Please input a valid default VAT rate!",
+                  },
+                ]}
+              >
                 <InputNumber
+                  className="inputNumberWidth"
                   type="number"
                   controls={false}
                   min={0}
@@ -639,6 +817,7 @@ function CarSalesRegistry() {
                   suffix="%"
                   value={defaultVATRate}
                   onChange={(value) => setDefaultVATRate(value)}
+                  formatter={(value) => value.replace(/\.\d*/, "")} // izslēdz iespēju ievadīt decimālskaitli
                 />
               </Form.Item>
             </Form>
@@ -654,16 +833,25 @@ function CarSalesRegistry() {
 
           <Modal
             width={600}
-            title="Add Record"
+            title="Add Sale"
             keyboard={false}
             maskClosable={false}
             open={isModalOpen2}
             onOk={onFormFinish}
             okText="Add"
-            onCancel={handleCloseModal}
+            onCancel={() => {
+              addForm.resetFields();
+              setIsModalOpen2(false);
+            }}
+            cancelText="Quit"
           >
             <div style={{ display: "flex", gap: "130px" }}>
-              <Form form={addForm} className="form" layout="vertical">
+              <Form
+                form={addForm}
+                className="form"
+                layout="vertical"
+                name="addForm"
+              >
                 <div style={{ width: 210 }}>
                   <Form.Item
                     label="Vehicle"
@@ -679,9 +867,9 @@ function CarSalesRegistry() {
                       showSearch
                       optionFilterProp="children"
                       filterOption={filterOption}
-                      onChange={(value) =>
-                        setsalesFormData({ ...salesFormData, vehicle: value })
-                      }
+                      onChange={(value) => {
+                        setsalesFormData({ ...salesFormData, vehicle: value });
+                      }}
                       options={getAvailableNumberplates().map(
                         (numberplate) => ({
                           value: numberplate,
@@ -701,12 +889,13 @@ function CarSalesRegistry() {
                     ]}
                   >
                     <Input
-                      onChange={(e) =>
+                      maxLength={80}
+                      onChange={(e) => {
                         setsalesFormData({
                           ...salesFormData,
                           appraiser: e.target.value,
-                        })
-                      }
+                        });
+                      }}
                     />
                   </Form.Item>
                 </div>
@@ -729,7 +918,7 @@ function CarSalesRegistry() {
             description="Are you sure you want to cancel car sale?"
             okText="Yes"
             cancelText="No"
-            onConfirm={cancelSaleBtn}
+            onConfirm={cancelSale}
           >
             <Button danger disabled={deleteDisabled}>
               Cancel Sale
@@ -740,12 +929,14 @@ function CarSalesRegistry() {
             width={750}
             keyboard={false}
             maskClosable={false}
-            title="Edit Record"
+            title="Edit Sale"
             open={isModalOpen3}
             okText={"Save"}
             cancelText={"Quit"}
             onOk={onEditFinish}
-            onCancel={() => setIsModalOpen3(false)}
+            onCancel={() => {
+              setIsModalOpen3(false);
+            }}
             footer={(_, { OkBtn, CancelBtn }) => (
               <>
                 <Popconfirm
@@ -753,41 +944,57 @@ function CarSalesRegistry() {
                   description="Are you sure you want to cancel car sale?"
                   okText="Yes"
                   cancelText="No"
-                  onConfirm={cancelSaleEditBtn}
+                  onConfirm={() => cancelSale(true)}
                 >
                   <Button danger disabled={deleteDisabled}>
                     Cancel Sale
                   </Button>
                 </Popconfirm>
                 <CancelBtn />
-                <OkBtn />
+                <OkBtn disabled />
               </>
             )}
           >
             <div style={{ display: "flex", gap: "160px" }}>
-              <Form form={editForm} className="form" layout="vertical">
+              <Form
+                form={editForm}
+                className="form"
+                layout="vertical"
+                // initialValues={{
+                //   neto: editData.netoprice,
+                //   appraiser: editData.appraiser,
+                //   vatrate: editData.vatrate,
+                //   date: dayjs(editData.date, "YYYY-MM-DD"),
+                // }}
+                name="editForm"
+              >
+
                 <div style={{ width: 280 }}>
                   <Form.Item label="Vehicle">
                     <Select
-                      value={editData ? editData.vehicle : ""}
-                      onChange={(value) =>
-                        setEditData({ ...editData, vehicle: value })
-                      }
+                      value={editData.vehicle}
                       showSearch
                       optionFilterProp="children"
                       filterOption={filterOption}
-                      options={numberplates.map((numberplate) => ({
-                        value: numberplate,
-                        label: numberplate,
-                      }))}
+                      onChange={(value) => {
+                        handleInputChange("vehicle", value);
+                      }}
+                      options={getAvailableNumberplates().map(
+                        (numberplate) => ({
+                          value: numberplate,
+                          label: numberplate,
+                        })
+                      )}
                       disabled={isVehicleSelectionDisabled}
                     />
                   </Form.Item>
 
                   <Form.Item label="Status">
                     <Select
-                      value={currentEditStatus} // Use the current edit status
-                      onChange={(value) => handleStatusChange(value)}
+                      value={editData.salestatus} // Pašreizējais statuss, kad rediģē
+                      onChange={(value) => {
+                        handleStatusChange(value);
+                      }}
                     >
                       {availableStatuses.map((status) => (
                         <Select.Option key={status} value={status}>
@@ -797,12 +1004,22 @@ function CarSalesRegistry() {
                     </Select>
                   </Form.Item>
 
-                  <Form.Item label="Appraiser">
+                  <Form.Item
+                    label="Appraiser"
+                    name="appraiser"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input appraiser!",
+                      },
+                    ]}
+                  >
                     <Input
-                      value={editData ? editData.appraiser : ""}
-                      onChange={(e) =>
-                        setEditData({ ...editData, appraiser: e.target.value })
-                      }
+                      maxLength={80}
+                      value={editData.appraiser}
+                      onChange={(e) => {
+                        handleInputChange("appraiser", e.target.value);
+                      }}
                     />
                   </Form.Item>
 
@@ -816,28 +1033,57 @@ function CarSalesRegistry() {
                       },
                     ]}
                   >
-                    <Input
-                      addonBefore="€"
-                      maxLength={8}
-                      value={editData ? editData.netoprice : ""}
-                      onChange={(e) =>
-                        setEditData({ ...editData, netoprice: e.target.value })
-                      }
+                    <InputNumber
+                      className="inputNumberWidth"
+                      controls={false}
+                      type="number"
+                      prefix="€"
+                      max={100000000}
+                      min={50}
+                      value={editData.netoprice}
+                      onChange={(value) => {
+                        handleInputChange("netoprice", value);
+                      }}
                       disabled={isNetoInputDisabled}
                     />
                   </Form.Item>
 
-                  <Form.Item label="VAT Rate ">
+                  <Form.Item
+                    label="VAT Rate"
+                    name="vatrate"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input VAT rate!",
+                      },
+                    ]}
+                  >
                     <InputNumber
-                      style={{ width: 280 }}
-                      defaultValue={21}
-                      disabled
-                      addonAfter="%"
+                      className="inputNumberWidth"
+                      disabled={isNetoInputDisabled}
+                      max={100}
+                      controls={false}
+                      precision={1}
+                      suffix="%"
                       type="number"
-                      value={editData ? editData.vatrate : ""}
-                      onChange={(value) =>
-                        setEditData({ ...editData, vatrate: value })
-                      }
+                      value={editData.vatrate}
+                      formatter={(value) => value.replace(/\.\d*/, "")} // izslēgt iespēju ievadīt decimālskaitli
+                      onChange={(value) => {
+                        handleInputChange("vatrate", value);
+                      }}
+                    />
+                  </Form.Item>
+
+                  <Form.Item label="Date" name="date">
+                    <DatePicker
+                      className="inputNumberWidth"
+                      placeholder=""
+                      value={ editData ? dayjs(editData.date, "YYYY-MM-DD") : null }
+                      onChange={(date) => {
+                        handleInputChange("date", date ? date.format("YYYY-MM-DD") : null);
+                      }}
+                      disabledDate={disabledDate}
+                      disabled={isDateInputDisabled}
                     />
                   </Form.Item>
                 </div>
@@ -848,10 +1094,11 @@ function CarSalesRegistry() {
               </div>
             </div>
           </Modal>
-        </div>
 
-        <div>
-          <RangePicker onChange={handleDateRangeChange} />
+          <RangePicker
+            style={{ borderRadius: 0 }}
+            onChange={handleDateRangeChange}
+          />
           <Button disabled={downloadDisabled}>
             <PDFDownloadLink
               document={
@@ -868,33 +1115,42 @@ function CarSalesRegistry() {
               {({ loading }) => (loading ? "Download" : "Download")}
             </PDFDownloadLink>
           </Button>
-        </div>
+
+          <Tooltip
+            title="Filter out canceled and sold statuses"
+            color="rgb(64,150,255)"
+          >
+            <Button onClick={handleExcludeSoldAndCanceled}>
+              <FilterOutlined />
+            </Button>
+          </Tooltip>
+        </ButtonGroup>
       </div>
 
-        <div className="ag-theme-balham" style={gridStyle}>
-          <AgGridReact
-            ref={gridRef}
-            rowData={filteredSalesRowData}
-            columnDefs={columnDefs}
-            defaultColDef={defaultColDef}
-            rowSelection="single"
-            pagination={true}
-            paginationPageSize={50}
-            onSelectionChanged={onSelectionChanged}
-            animateRows={true}
-            rowHeight={35}
-            onRowSelected={(event) => {
-              if (event.node.isSelected()) {
-                setSelectedRowForEdit(event.data);
-              } else {
-                setSelectedRowForEdit(null);
-              }
-            }}
-            alwaysShowHorizontalScroll={true}
-            alwaysShowVerticalScroll={true}
-            onRowDoubleClicked={onRowDoubleClicked}
-          ></AgGridReact>
-        </div>
+      <div className="ag-theme-balham" style={gridStyle}>
+        <AgGridReact
+          ref={gridRef}
+          rowData={filteredSalesRowData}
+          columnDefs={columnDefs}
+          defaultColDef={defaultColDef}
+          rowSelection="single"
+          pagination={true}
+          paginationPageSize={50}
+          onSelectionChanged={onSelectionChanged}
+          animateRows={true}
+          rowHeight={35}
+          onRowSelected={(event) => {
+            if (event.node.isSelected()) {
+              setSelectedRowForEdit(event.data);
+              setEditData(event.data);
+            } else {
+              setSelectedRowForEdit(null);
+            }
+          }}
+          alwaysShowVerticalScroll={true}
+          onRowDoubleClicked={onRowDoubleClicked}
+        ></AgGridReact>
+      </div>
     </>
   );
 }

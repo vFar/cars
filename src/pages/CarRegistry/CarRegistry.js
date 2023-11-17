@@ -23,15 +23,16 @@ import "ag-grid-community/styles/ag-theme-balham.css";
 import dayjs from "dayjs";
 
 import "../style.css";
-import { InsertRowBelowOutlined, EditOutlined } from "@ant-design/icons";
+import { InsertRowBelowOutlined, EditOutlined, FilterOutlined } from "@ant-design/icons";
 import Navbar from "../Navbar.js";
+import ButtonGroup from "antd/es/button/button-group.js";
 
 function CarRegistry() {
   const salesRowData = localStorage.getItem("salesRowData");
   const carRowData = localStorage.getItem("rowData");
+  const gridStyle = useMemo(() => ({ height: "calc(100% - 152px)", width: "100%" }), []);
 
-  const gridStyle = useMemo(() => ({ height: "100%", width: "100%" }), []);
-
+  //pārbauda pirms katra lapas ielādes
   if (!salesRowData) {
     const initialSalesRowData = [];
     localStorage.setItem("salesRowData", JSON.stringify(initialSalesRowData));
@@ -56,19 +57,44 @@ function CarRegistry() {
   const numberplates = rowData.map((row) => row.numberplate);
   localStorage.setItem("numberplates", JSON.stringify(numberplates));
 
+  // atjaunina AG-Grid ar jauniem datiem
   useEffect(() => {
     localStorage.setItem("rowData", JSON.stringify(rowData));
   }, [rowData]);
 
   const handleFormSubmit = () => {
-    const yearValue = formData.year.format("YYYY");
-    const newData = { ...formData, year: yearValue };
-  
-    const isDuplicateVIN = rowData.some((row) => row.VIN === newData.VIN);
-    const isDuplicateNumberPlate = rowData.some(
-      (row) => row.numberplate === newData.numberplate
+    // Izdzēš liekās atstarpes visiem Input laukiem, ja tas nepieciešams
+    Object.keys(formData).forEach((key) => {
+      if (formData[key] && typeof formData[key] === "string") {
+        formData[key] = formData[key].trim();
+      }
+    });
+
+    // pārbauda vai visi Input ievades lauki ir tukši pēc lieko atstarpu izdzēšanas
+    const isAnyFieldEmpty = Object.values(formData).some(
+      (value) => value === ""
     );
-  
+
+    // ja viens no laukiem ir tukšs, tad izvada paziņojumu
+    if (isAnyFieldEmpty) {
+      messageApi.open({
+        type: "error",
+        content:
+          "All form fields are required and cannot be empty or contain only whitespaces.",
+      });
+      return; // Atceļ jaunu ierakstu Form iesniegšanu
+    }
+
+
+    const yearValue = formData.year.format("YYYY");
+    // nepieciešamas, lai sekmīgi ieliktu DatePicker gadu
+    const newData = { ...formData, year: yearValue };
+
+
+    // nepieļaut lietotājam ievadīt automašīnas datus, kam vienāds VIN un numurzīme
+    const isDuplicateVIN = rowData.some((row) => row.VIN === newData.VIN);
+    const isDuplicateNumberPlate = rowData.some((row) => row.numberplate === newData.numberplate);
+
     if (isDuplicateVIN) {
       messageApi.open({
         type: "error",
@@ -82,11 +108,16 @@ function CarRegistry() {
     } else {
       messageApi.open({
         type: "success",
-        content: "New record has been successfully added",
+        content: "New vehicle record has been successfully added",
       });
-  
+
+      // atjaunina localStorage ar jauniem datiem un iestata statusu uz pieejamu pēc noklusējuma
       setRowData([{ ...newData, status: "Available" }, ...rowData]);
       setIsModalOpen1(false);
+
+      setEditDisabled(true);
+      setDeleteDisabled(true);
+
       form.resetFields();
     }
   };
@@ -102,75 +133,89 @@ function CarRegistry() {
       });
   };
 
-  
-  const testingColors = {
+  //Masīvi priekš automašīnu krāsām, virsbūves un motora tipiem
+  const allVehicleBodyTypes = ['Off-road', 'Hatchback', 'Cabriolet', 'Coupe', 'Universal', 'Pickup', 'Sedan', 'Minibus', 'SUV', 'Other'];
+  const allVehicleColors = ['White', 'Black', 'Brown', 'Yellow', 'Light Blue', 'Blue', 'Silver', 'Light Green', 'Green', 'Dark Green', 'Dark Red', 'Red', 'Purple', 'Gray', 'Orange', 'Other'];
+  const allVehicleEngineTypes = ['Gasoline/gas', 'Gasoline', 'Diesel', 'Hybrid', 'Electric'];
+
+
+  const statusFieldColors = {
     'status-available': params => params.value === 'Available',
     'status-sold-car': params => params.value === 'Sold',
     'status-reserved': params => params.value === 'Reserved',
   }
 
-  const testingRenderer = (params) => {
+  //Custom kolonnas renderer, lai ieliktu statusus zem <span> tag un piešķirt tam CSS class
+  const statusFieldRenderer = (params) => {
     return <span className="status-element">{params.value}</span>;
   }
 
+  //AG-Grid kolonnas
   const [columnDefs] = useState([
     {
-      field: "VIN",
+      field: "VIN", headerTooltip: "An example of a car's Vehicle Identification Number (VIN) is 4Y1SL65848Z411439",
       cellDataType: "text",
     },
     {
-      field: "numberplate",
+      field: "numberplate", headerTooltip: "'J4NIS' is an example of a custom license plate, whereas 'LV-3441' represents a non-customized plate in most countries",
       headerName: "Number plate",
     },
-    { field: "brand", headerName: "Brand", sortable: true },
-    { field: "model", headerName: "Model", sortable: true },
-    { field: "year", headerName: "Year", sortable: true },
+    { field: "brand", headerName: "Brand" },
+    { field: "model", headerName: "Model" },
+    { field: "year", headerName: "Year", cellStyle: { justifyContent: 'center' }, },
     {
-      field: "color",
+      field: "color"
     },
     {
       field: "engine",
       headerName: "Engine",
-      sortable: true,
     },
     {
       field: "enginecapacity",
       headerName: "Engine capacity (L)",
+      headerClass: "ag-right-aligned-header",
       cellDataType: "number",
+      cellStyle: { justifyContent: 'right' },
     },
     {
       field: "gearbox",
       headerName: "Gearbox",
-      sortable: true,
     },
     {
-      field: "bodytype",
+      field: "bodytype", 
       headerName: "Body type",
-      sortable: true,
     },
     {
       field: "status",
       headerName: "Status",
-      sortable: true,
+      headerTooltip: "Cars that have been reserved cannot be altered as they are currently in the process of being sold",
       valueGetter: (params) => {
         if (params.data.status) {
           return params.data.status;
         }
         return "Available";
       },
-      cellClassRules: testingColors,
-      cellRenderer: testingRenderer,
+      cellClassRules: statusFieldColors,
+      cellRenderer: statusFieldRenderer,
     },
   ]);
 
+  // Noklusējuma atribūti visām kolonnām
   const defaultColDef = useMemo(() => {
     return {
       flex: 1,
+      resizable: true,
+      sortable: true,
+      maxWidth: 250,
+      width: 125,
+      minWidth: 100,
+      tooltipShowDelay: 300,
     };
   }, []);
 
   const gridRef = useRef();
 
+  //Iegūst datus no izvēlētā ieraksta caur AG-Grid getSelectedRows();
   const handleEdit = () => {
     const selectedRows = gridRef.current.api.getSelectedRows();
 
@@ -182,7 +227,37 @@ function CarRegistry() {
 
   const [isDirty, setIsDirty] = useState(false);
 
+  //funkcija, kas nodrošina ieraksta rediģēšanu
   const handleEditSubmit = () => {
+    // Izdzēš liekās atstarpes visiem Input laukiem, ja tas nepieciešams
+    Object.keys(editData).forEach((key) => {
+      if (editData[key] && typeof editData[key] === "string") {
+        editData[key] = editData[key].trim();
+      }
+    });
+
+    // pārbauda vai visi Input lauki ir tīri no liekām atstarpēm
+    const isAnyFieldEmpty = Object.values(editData).some((value) => value === "");
+    
+    //Izvada kļūdas paziņojumu, ja kaut viens Input lauks nav tīrs
+    if (isAnyFieldEmpty) {
+      messageApi.open({
+        type: "error",
+        content:
+          "All form fields are required and cannot be empty or contain only whitespaces.",
+      });
+      return; // Atceļ rediģēšanas Formas iesniegšanu
+    }
+
+    // pārbauda vai motora tips nav elektrisks un vai motora tilpuma Input lauks ir tukšs
+    if ( editData.engine !== "Electric" && (editData.enginecapacity === undefined || editData.enginecapacity === null || editData.enginecapacity === "")) {
+      messageApi.open({
+        type: "error",
+        content: "Engine capacity is required for non-electric engine types.",
+      });
+      return; // Atceļ rediģēšanas Formas iesniegšanu
+    }
+
 
     const updatedData = rowData.map((row) =>
       row.VIN === editData.VIN ? { ...editData } : row
@@ -191,6 +266,9 @@ function CarRegistry() {
     setRowData(updatedData);
     localStorage.setItem("rowData", JSON.stringify(updatedData));
     setIsModalOpen2(false);
+
+    setEditDisabled(true);
+    setDeleteDisabled(true);
 
     messageApi.open({
       type: "success",
@@ -202,18 +280,20 @@ function CarRegistry() {
 
   const handleEditModalCancel = () => {
     setIsModalOpen2(false);
-    // Reset the isDirty flag when the modal is closed
+    // Atiestata isDirty useState uz false, kad aizver Modal
     setIsDirty(false);
   };
 
+  //funkcija, kas atjaunina editData useState un pataisa Form par dirty (lai ieslēgtu 'Save' pogu)
   const handleInputChange = (field, value) => {
     setEditData({ ...editData, [field]: value });
     setIsDirty(true); 
   };
 
 
-
+  //Funkcija, kas nosaka vai motora tips ir elektrisks, kad ievieto jaunu ierakstu
   const handleEngineChange = (value) => {
+    //pārbaude, jo elektriskam motoram nav motora tilpuma, toties iestata to par null
     if (value === "Electric") {
       setIsElectric(true);
       setFormData({ ...formData, engine: value, enginecapacity: null });
@@ -224,7 +304,9 @@ function CarRegistry() {
   };
 
 
+  //Funckija, kas nosaka vai motora tips ir elektrisks, kad rediģē esošo ierakstu
   const handleEditEngineChange = (value) => {
+    //pārbaude, jo elektriskam motoram nav motora tilpuma, toties iestata to par null
     if (value === "Electric") {
       setIsElectric(true);
       setEditData({ ...editData, engine: value, enginecapacity: null });
@@ -232,36 +314,37 @@ function CarRegistry() {
       setIsElectric(false);
       setEditData({ ...editData, engine: value });
     }
+    setIsDirty(true); // iestata Form dirty (lai ieslēgtu 'Save' pogu)
   };
 
+  //funkcija nodrošina ieraksta dzēšanu
   const onRemoveSelected = () => {
     const selectedData = gridRef.current.api.getSelectedRows();
-    gridRef.current.api.applyTransaction({ remove: selectedData });
-
+    
+    //atjaunina localStorage
     setRowData((prevData) => {
       const updatedData = prevData.filter((row) => !selectedData.includes(row));
-
+  
       localStorage.setItem("rowData", JSON.stringify(updatedData));
-
       return updatedData;
     });
-
+  
     messageApi.open({
-      type: 'warning',
-      content: 'Record has been deleted'
+      type: "warning",
+      content: "Vehicle record has been deleted",
     });
   };
 
   //Modal
   const [isModalOpen1, setIsModalOpen1] = useState(false);
   const [isModalOpen2, setIsModalOpen2] = useState(false);
+  
+  //funkcija, kas aizver modal un atiestata visus Form datus
   const handleCloseModal = () => {
-    // Сбросить значения формы при закрытии модального окна
     form.resetFields();
-
-    // Закрыть модальное окно
     setIsModalOpen1(false);
   };
+
   const [deleteDisabled, setDeleteDisabled] = useState(true);
   const [editDisabled, setEditDisabled] = useState(true);
 
@@ -271,7 +354,7 @@ function CarRegistry() {
       let isDeleteDisabled = false;
       let isEditDisabled = false;
       
-      //expertimental "Sold", maybe sold cars can be deleted from car registry (???)
+      //izslēdz CRUD pogas priekš ierakstu dzēšanas un rediģēšanas
       for (const row of selectedRows) {
         if (row.status === 'Reserved' || row.status === 'Sold') {
           isDeleteDisabled = true;
@@ -286,9 +369,13 @@ function CarRegistry() {
       setDeleteDisabled(true);
       setEditDisabled(true);
     }
+
+    if(selectedRows.length > 1)
+      setEditDisabled(true)
+
   }, []);
 
-  //datepicker year
+  //DatePicker noteikumi par gada izvēli ( 1900 līdz tekošam gadam )
   const minYear = 1900;
   const maxYear = dayjs().year();
 
@@ -296,615 +383,424 @@ function CarRegistry() {
     return current && (current.year() < minYear || current.year() > maxYear);
   };
 
-  //double click edit
+  //funkcija, kas ļauj rediģēt ierakstu caur dubult-klikšķa uz rindas
   const onRowDoubleClicked = () => {
-    handleEdit()
-    setIsModalOpen2(true)
+    const selectedRows = gridRef.current.api.getSelectedRows();
+
+    if (selectedRows.length === 1 && selectedRows[0].status === 'Available') {
+      handleEdit();
+      setIsModalOpen2(true);
+    }
   }
+
   return (
     <>
-      <Navbar />
       {contextHolder}
+      <Navbar />
+      <div style={{ display: "flex", justifyContent: "flex-start" }}>
+        <ButtonGroup>
+          <Button
+            icon={<InsertRowBelowOutlined />}
+            onClick={() => setIsModalOpen1(true)}
+          >
+            Add
+          </Button>
 
-      <div style={{display: 'flex', justifyContent: 'flex-start'}}>
-      <Button
-        icon={<InsertRowBelowOutlined />}
-        onClick={() => setIsModalOpen1(true)}
-      >
-        Add
-      </Button>
+          <Modal
+            title="Add Vehicle"
+            maskClosable={false}
+            keyboard={false}
+            open={isModalOpen1}
+            onOk={onFinish}
+            okText="Add Vehicle"
+            cancelText="Quit"
+            onCancel={handleCloseModal}
+          >
+            <Form form={form} layout="vertical" className="form" name="basic">
+              <div>
+                <Form.Item
+                  label="VIN"
+                  name="VIN"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input VIN!",
+                    },
+                  ]}
+                >
+                  <Input
+                    maxLength="17"
+                    minLength="5"
+                    onInput={(e) =>
+                      (e.target.value = e.target.value.toUpperCase())
+                    }
+                    onChange={(e) =>
+                      setFormData({ ...formData, VIN: e.target.value })
+                    }
+                  />
+                </Form.Item>
 
-      <Modal
-        title="Add Record"
-        maskClosable={false}
-        keyboard={false}
-        open={isModalOpen1}
-        onOk={onFinish}
-        okText="Add Record"
-        cancelText="Cancel"
-        onCancel={handleCloseModal}
-      >
-        <Form form={form} layout="vertical" className="form" name="basic">
-          <div>
-            <Form.Item
-              label="VIN"
-              name="VIN"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input VIN!",
-                },
-              ]}
-            >
-              <Input
-                maxLength="17"
-                minLength="5"
-                onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-                onChange={(e) =>
-                  setFormData({ ...formData, VIN: e.target.value })
-                }
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Brand"
+                  name="Brand"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input brand!",
+                    },
+                  ]}
+                >
+                  <Input
+                    maxLength={20}
+                    onChange={(e) =>
+                      setFormData({ ...formData, brand: e.target.value })
+                    }
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Brand"
-              name="Brand"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input brand!",
-                },
-              ]}
-            >
-              <Input
-                maxLength={20}
-                onChange={(e) =>
-                  setFormData({ ...formData, brand: e.target.value })
-                }
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Year"
+                  name="Year"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input year!",
+                    },
+                  ]}
+                >
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    picker="year"
+                    placeholder=""
+                    onChange={(date) =>
+                      setFormData({ ...formData, year: date })
+                    }
+                    disabledDate={disabledDate}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Year"
-              name="Year"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input year!",
-                },
-              ]}
-            >
-              <DatePicker
-                style={{ width: "100%" }}
-                picker="year"
-                placeholder=""
-                onChange={(date) => setFormData({ ...formData, year: date })}
-                disabledDate={disabledDate}
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Engine"
+                  name="Engine"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input engine!",
+                    },
+                  ]}
+                >
+                  <Select
+                    onChange={(value) => handleEngineChange(value)}
+                    options={allVehicleEngineTypes.map((engineType) => ({
+                      label: engineType,
+                      value: engineType,
+                    }))}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Engine"
-              name="Engine"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input engine!",
-                },
-              ]}
-            >
-              <Select
-                onChange={(value) => handleEngineChange(value)}
-                options={[
-                  {
-                    value: "Gasoline/gas",
-                    label: "Gasoline/gas",
-                  },
-                  {
-                    value: "Gasoline",
-                    label: "Gasoline",
-                  },
-                  {
-                    value: "Diesel",
-                    label: "Diesel",
-                  },
-                  {
-                    value: "Hybrid",
-                    label: "Hybrid",
-                  },
-                  {
-                    value: "Electric",
-                    label: "Electric",
-                  },
-                ]}
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Gearbox"
+                  name="Gearbox"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input gearbox!",
+                    },
+                  ]}
+                >
+                  <Select
+                    onChange={(value) =>
+                      setFormData({ ...formData, gearbox: value })
+                    }
+                    options={[
+                      {
+                        value: "Manual",
+                        label: "Manual",
+                      },
+                      {
+                        value: "Automatic",
+                        label: "Automatic",
+                      },
+                    ]}
+                  />
+                </Form.Item>
+              </div>
 
-            <Form.Item
-              label="Gearbox"
-              name="Gearbox"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input gearbox!",
-                },
-              ]}
-            >
-              <Select
-                onChange={(value) =>
-                  setFormData({ ...formData, gearbox: value })
-                }
-                options={[
-                  {
-                    value: "Manual",
-                    label: "Manual",
-                  },
-                  {
-                    value: "Automatic",
-                    label: "Automatic",
-                  },
-                ]}
-              />
-            </Form.Item>
-          </div>
+              <div>
+                <Form.Item
+                  label="Number plate"
+                  name="Numberplate"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input number plate!",
+                    },
+                  ]}
+                >
+                  <Input
+                    maxLength="8"
+                    onInput={(e) =>
+                      (e.target.value = e.target.value.toUpperCase())
+                    }
+                    onChange={(e) =>
+                      setFormData({ ...formData, numberplate: e.target.value })
+                    }
+                  />
+                </Form.Item>
 
-          <div>
-            <Form.Item
-              label="Number plate"
-              name="Numberplate"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input number plate!",
-                },
-              ]}
-            >
-              <Input
-                maxLength="8"
-                onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-                onChange={(e) =>
-                  setFormData({ ...formData, numberplate: e.target.value })
-                }
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Model"
+                  name="Model"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please input model!",
+                    },
+                  ]}
+                >
+                  <Input
+                    maxLength={20}
+                    onChange={(e) =>
+                      setFormData({ ...formData, model: e.target.value })
+                    }
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Model"
-              name="Model"
-              rules={[
-                {
-                  required: true,
-                  message: "Please input model!",
-                },
-              ]}
-            >
-              <Input
-                maxLength={20}
-                onChange={(e) =>
-                  setFormData({ ...formData, model: e.target.value })
-                }
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Color"
+                  name="Color"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please choose color!",
+                    },
+                  ]}
+                >
+                  <Select
+                    listHeight={240}
+                    onChange={(value) =>
+                      setFormData({ ...formData, color: value })
+                    }
+                    options={allVehicleColors.map((colors) => ({
+                      label: colors,
+                      value: colors,
+                    }))}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Color"
-              name="Color"
-              rules={[
-                {
-                  required: true,
-                  message: "Please choose color!",
-                },
-              ]}
-            >
-              <Select
-                listHeight={240}
-                onChange={(value) => setFormData({ ...formData, color: value })}
-                options={[
-                  {
-                    value: "White",
-                    label: "White",
-                  },
-                  {
-                    value: "Black",
-                    label: "Black",
-                  },
-                  {
-                    value: "Brown",
-                    label: "Brown",
-                  },
-                  {
-                    value: "Yellow",
-                    label: "Yellow",
-                  },
-                  {
-                    value: "Light blue",
-                    label: "Light blue",
-                  },
-                  {
-                    value: "Blue",
-                    label: "Blue",
-                  },
-                  {
-                    value: "Silver",
-                    label: "Silver",
-                  },
-                  {
-                    value: "Green",
-                    label: "Green",
-                  },
-                  {
-                    value: "Red",
-                    label: "Red",
-                  },
-                  {
-                    value: "Dark red",
-                    label: "Dark red",
-                  },
-                  {
-                    value: "Purple",
-                    label: "Purple",
-                  },
-                  {
-                    value: "Gray",
-                    label: "Gray",
-                  },
-                  {
-                    value: "Orange",
-                    label: "Orange",
-                  },
-                ]}
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Engine capacity (L)"
+                  name="Enginecapacity"
+                  rules={[
+                    {
+                      required: !isElectric,
+                      message: "Please input engine capacity!",
+                    },
+                  ]}
+                >
+                  <InputNumber
+                    type="decimal"
+                    style={{ width: "100%" }}
+                    controls={false}
+                    min={0.1}
+                    max={10}
+                    maxLength={3}
+                    onChange={(value) =>
+                      setFormData({ ...formData, enginecapacity: value })
+                    }
+                    disabled={isElectric}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              label="Engine capacity (L)"
-              name="Enginecapacity"
-              rules={[
-                {
-                  required: !isElectric,
-                  message: "Please input engine capacity!",
-                },
-              ]}
-            >
-              <InputNumber
-                type="decimal"
-                style={{ width: "100%" }}
-                controls={false}
-                min={0.1}
-                max={10}
-                maxLength={3}
-                onChange={(value) =>
-                  setFormData({ ...formData, enginecapacity: value })
-                }
-                disabled={isElectric}
-              />
-            </Form.Item>
+                <Form.Item
+                  label="Body type"
+                  name="Bodytype"
+                  rules={[
+                    {
+                      required: true,
+                      message: "Please choose body type!",
+                    },
+                  ]}
+                >
+                  <Select
+                    onChange={(value) =>
+                      setFormData({ ...formData, bodytype: value })
+                    }
+                    listHeight={200}
+                    options={allVehicleBodyTypes.map((bodyType) => ({
+                      label: bodyType,
+                      value: bodyType,
+                    }))}
+                  />
+                </Form.Item>
+              </div>
+            </Form>
+          </Modal>
 
-            <Form.Item
-              label="Body type"
-              name="Bodytype"
-              rules={[
-                {
-                  required: true,
-                  message: "Please choose body type!",
-                },
-              ]}
-            >
-              <Select
-                onChange={(value) =>
-                  setFormData({ ...formData, bodytype: value })
-                }
-                listHeight={200}
-                options={[
-                  {
-                    value: "Off-road",
-                    label: "Off-road",
-                  },
-                  {
-                    value: "Hatchback",
-                    label: "Hatchback",
-                  },
-                  {
-                    value: "Cabriolet",
-                    label: "Cabriolet",
-                  },
-                  {
-                    value: "Coupe",
-                    label: "Coupe",
-                  },
-                  {
-                    value: "Universal",
-                    label: "Universal",
-                  },
-                  {
-                    value: "Pickup",
-                    label: "Pickup",
-                  },
-                  {
-                    value: "Sedan",
-                    label: "Sedan",
-                  },
-                  {
-                    value: "Minibus",
-                    label: "Minibus",
-                  },
-                  {
-                    value: "SUV",
-                    label: "SUV",
-                  },
-                  {
-                    value: "Other",
-                    label: "Other",
-                  },
-                ]}
-              />
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
+          <Button
+            icon={<EditOutlined />}
+            disabled={editDisabled}
+            onClick={handleEdit}
+          >
+            Edit
+          </Button>
 
-      <Button
-        icon={<EditOutlined />}
-        disabled={editDisabled}
-        onClick={handleEdit}
-      >
-        Edit
-      </Button>
+          <Modal
+            keyboard={false}
+            maskClosable={false}
+            title="Edit Vehicle"
+            open={isModalOpen2}
+            okText={"Save"}
+            cancelText={"Quit"}
+            onOk={handleEditSubmit}
+            onCancel={handleEditModalCancel}
+            okButtonProps={{ disabled: !isDirty }}
+          >
+            <Form className="form" layout="vertical">
+              <div>
+                <Form.Item label="VIN">
+                  <Input
+                    maxLength="17"
+                    minLength="5"
+                    onInput={(e) =>
+                      (e.target.value = e.target.value.toUpperCase())
+                    }
+                    value={editData ? editData.VIN : ""}
+                    // onChange={(e) =>
+                    //   setEditData({ ...editData, VIN: e.target.value })
+                    // }
+                    onChange={(e) => handleInputChange("VIN", e.target.value)}
+                    disabled
+                  />
+                </Form.Item>
 
-      <Modal
-        keyboard={false}
-        maskClosable={false}
-        title="Edit Record"
-        open={isModalOpen2}
-        okText={"Save"}
-        cancelText={"Cancel"}
-        onOk={handleEditSubmit}
-        onCancel={handleEditModalCancel}
-        okButtonProps={{ disabled: !isDirty }}
-      >
-        <Form className="form" layout="vertical">
-          <div>
-            <Form.Item label="VIN">
-              <Input
-                maxLength="17"
-                minLength="5"
-                onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-                value={editData ? editData.VIN : ""}
-                // onChange={(e) =>
-                //   setEditData({ ...editData, VIN: e.target.value })
-                // }
-                onChange={(e) => handleInputChange("VIN", e.target.value)}
-                disabled
-              />
-            </Form.Item>
+                <Form.Item label="Brand">
+                  <Input
+                    maxLength={12}
+                    value={editData ? editData.brand : ""}
+                    onChange={(e) => handleInputChange("brand", e.target.value)}
+                  />
+                </Form.Item>
 
-            <Form.Item label="Brand">
-              <Input
-                maxLength={20}
-                value={editData ? editData.brand : ""}
-                onChange={(e) => handleInputChange("brand", e.target.value)}
-              />
-            </Form.Item>
+                <Form.Item label="Year">
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    picker="year"
+                    placeholder=""
+                    value={editData ? dayjs(editData.year, "YYYY") : null}
+                    onChange={(date) =>
+                      handleInputChange(
+                        "year",
+                        date ? date.format("YYYY") : null
+                      )
+                    }
+                    disabledDate={disabledDate}
+                  />
+                </Form.Item>
 
-            <Form.Item label="Year">
-              <DatePicker
-                style={{ width: "100%" }}
-                picker="year"
-                placeholder=""
-                value={editData ? dayjs(editData.year, "YYYY") : null}
-                onChange={(date) =>
-                  handleInputChange("year", date ? date.format("YYYY") : null)
-                }
-                disabledDate={disabledDate}
-              />
-            </Form.Item>
+                <Form.Item label="Engine">
+                  <Select
+                    value={editData ? editData.engine : ""}
+                    onChange={(value) => handleEditEngineChange(value)}
+                    options={allVehicleEngineTypes.map((engineType) => ({
+                      label: engineType,
+                      value: engineType,
+                    }))}
+                  />
+                </Form.Item>
 
-            <Form.Item label="Engine">
-              <Select
-                value={editData ? editData.engine : ""}
-                onChange={(value) => handleEditEngineChange(value)}
-                // onChange={(value) =>
-                //   setEditData({ ...editData, engine: value })
-                // }
-                options={[
-                  {
-                    value: "Gasoline/gas",
-                    label: "Gasoline/gas",
-                  },
-                  {
-                    value: "Gasoline",
-                    label: "Gasoline",
-                  },
-                  {
-                    value: "Diesel",
-                    label: "Diesel",
-                  },
-                  {
-                    value: "Hybrid",
-                    label: "Hybrid",
-                  },
-                  {
-                    value: "Electric",
-                    label: "Electric",
-                  },
-                ]}
-              />
-            </Form.Item>
+                <Form.Item label="Gearbox">
+                  <Select
+                    value={editData ? editData.gearbox : ""}
+                    onChange={(value) => handleInputChange("gearbox", value)}
+                    options={[
+                      {
+                        value: "Manual",
+                        label: "Manual",
+                      },
+                      {
+                        value: "Automatic",
+                        label: "Automatic",
+                      },
+                    ]}
+                  />
+                </Form.Item>
+              </div>
 
-            <Form.Item label="Gearbox">
-              <Select
-                value={editData ? editData.gearbox : ""}
-                onChange={(value) => handleInputChange("gearbox", value)}
-                options={[
-                  {
-                    value: "Manual",
-                    label: "Manual",
-                  },
-                  {
-                    value: "Automatic",
-                    label: "Automatic",
-                  },
-                ]}
-              />
-            </Form.Item>
-          </div>
+              <div>
+                <Form.Item label="Number plate">
+                  <Input
+                    maxLength="8"
+                    onInput={(e) =>
+                      (e.target.value = e.target.value.toUpperCase())
+                    }
+                    value={editData ? editData.numberplate : ""}
+                    onChange={(e) =>
+                      handleInputChange("numberplate", e.target.value)
+                    }
+                  />
+                </Form.Item>
 
-          <div>
-            <Form.Item label="Number plate">
-              <Input
-                maxLength="8"
-                onInput={(e) => (e.target.value = e.target.value.toUpperCase())}
-                value={editData ? editData.numberplate : ""}
-                onChange={(e) => handleInputChange("numberplate", e.target.value)}
-              />
-            </Form.Item>
+                <Form.Item label="Model">
+                  <Input
+                    maxLength={20}
+                    value={editData ? editData.model : ""}
+                    onChange={(e) => handleInputChange("model", e.target.value)}
+                  />
+                </Form.Item>
 
-            <Form.Item label="Model">
-              <Input
-                maxLength={20}
-                value={editData ? editData.model : ""}
-                onChange={(e) => handleInputChange("model", e.target.value)}
-              />
-            </Form.Item>
+                <Form.Item label="Color">
+                  <Select
+                    value={editData ? editData.color : ""}
+                    onChange={(value) => handleInputChange("color", value)}
+                    listHeight={240}
+                    options={allVehicleColors.map((colors) => ({
+                      label: colors,
+                      value: colors,
+                    }))}
+                  />
+                </Form.Item>
+                <Form.Item label="Engine capacity (L)">
+                  <InputNumber
+                    type="number"
+                    style={{ width: "100%" }}
+                    controls={false}
+                    min={0.1}
+                    max={10}
+                    value={editData ? editData.enginecapacity : ""}
+                    onChange={(value) =>
+                      handleInputChange("enginecapacity", value)
+                    }
+                    disabled={isElectric}
+                  />
+                </Form.Item>
+                <Form.Item label="Body type">
+                  <Select
+                    value={editData ? editData.bodytype : ""}
+                    onChange={(value) => handleInputChange("bodytype", value)}
+                    listHeight={200}
+                    options={allVehicleBodyTypes.map((bodyType) => ({
+                      label: bodyType,
+                      value: bodyType,
+                    }))}
+                  />
+                </Form.Item>
+              </div>
+            </Form>
+          </Modal>
 
-            <Form.Item label="Color">
-              <Select
-                value={editData ? editData.color : ""}
-                onChange={(value) => handleInputChange("color", value)}
-                listHeight={240}
-                options={[
-                  {
-                    value: "White",
-                    label: "White",
-                  },
-                  {
-                    value: "Black",
-                    label: "Black",
-                  },
-                  {
-                    value: "Brown",
-                    label: "Brown",
-                  },
-                  {
-                    value: "Yellow",
-                    label: "Yellow",
-                  },
-                  {
-                    value: "Light blue",
-                    label: "Light blue",
-                  },
-                  {
-                    value: "Blue",
-                    label: "Blue",
-                  },
-                  {
-                    value: "Silver",
-                    label: "Silver",
-                  },
-                  {
-                    value: "Green",
-                    label: "Green",
-                  },
-                  {
-                    value: "Red",
-                    label: "Red",
-                  },
-                  {
-                    value: "Dark red",
-                    label: "Dark red",
-                  },
-                  {
-                    value: "Purple",
-                    label: "Purple",
-                  },
-                  {
-                    value: "Gray",
-                    label: "Gray",
-                  },
-                  {
-                    value: "Orange",
-                    label: "Orange",
-                  },
-                ]}
-              />
-            </Form.Item>
-            <Form.Item label="Engine capacity (L)">
-              <InputNumber
-                type="number"
-                style={{ width: "100%" }}
-                controls={false}
-                min={0.1}
-                max={10}
-                value={editData ? editData.enginecapacity : ""}
-                onChange={(value) => handleInputChange("enginecapacity", value)}
-                disabled={isElectric}
-              />
-            </Form.Item>
-            <Form.Item label="Body type">
-              <Select
-                value={editData ? editData.bodytype : ""}
-                onChange={(value) => handleInputChange("bodytype", value)}
-                listHeight={200}
-                options={[
-                  {
-                    value: "Off-road",
-                    label: "Off-road",
-                  },
-                  {
-                    value: "Hatchback",
-                    label: "Hatchback",
-                  },
-                  {
-                    value: "Cabriolet",
-                    label: "Cabriolet",
-                  },
-                  {
-                    value: "Coupe",
-                    label: "Coupe",
-                  },
-                  {
-                    value: "Universal",
-                    label: "Universal",
-                  },
-                  {
-                    value: "Pickup",
-                    label: "Pickup",
-                  },
-                  {
-                    value: "Sedan",
-                    label: "Sedan",
-                  },
-                  {
-                    value: "Minibus",
-                    label: "Minibus",
-                  },
-                  {
-                    value: "SUV",
-                    label: "SUV",
-                  },
-                  {
-                    value: "Other",
-                    label: "Other",
-                  },
-                ]}
-              />
-            </Form.Item>
-          </div>
-        </Form>
-      </Modal>
-
-      <Popconfirm
-        title="Delete the record"
-        description="Are you sure you want to delete record/s?"
-        okText="Yes"
-        cancelText="No"
-        onConfirm={onRemoveSelected}
-      >
-        <Button danger disabled={deleteDisabled}>
-          Delete Record
-        </Button>
-      </Popconfirm>
-
+          <Popconfirm
+            title="Delete the record"
+            description="Are you sure you want to delete record/s?"
+            okText="Yes"
+            cancelText="No"
+            onConfirm={onRemoveSelected}
+          >
+            <Button danger disabled={deleteDisabled}>
+              Delete Record
+            </Button>
+          </Popconfirm>
+        </ButtonGroup>
       </div>
 
       <div className="ag-theme-balham" style={gridStyle}>
@@ -920,7 +816,6 @@ function CarRegistry() {
           onRowDoubleClicked={onRowDoubleClicked}
           animateRows={true}
           rowHeight={35}
-          alwaysShowHorizontalScroll={true}
           alwaysShowVerticalScroll={true}
         ></AgGridReact>
       </div>
